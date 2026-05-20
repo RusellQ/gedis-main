@@ -196,6 +196,12 @@
                     <span style="color: #848B96;">Catalogo Disposicion</span></a>
 
             </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/catalogosecciones">
+                    <i class="fas fa-list-alt" style="color: #6b7990;"></i>
+                    <span style="color: #848B96;">Catalogo Secciones</span></a>
+
+            </li>
             @endif
 
             

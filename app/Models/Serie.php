@@ -34,7 +34,7 @@ class Serie extends Model
         'tecnica_conservacion',
         'tecnica_muestreo',
 
-        // --- Clasificación de Información ---
+        // --- Clasificación de Información --- para la gestión de seguridad de la información y protección de datos personales sl igual que en el modelo de Subserie, pero se incluyen aquí para fca
         'clasificacion_r', // Reservada
         'clasificacion_c', // Confidencial
 

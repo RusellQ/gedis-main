@@ -65,6 +65,9 @@ app.component('cuadro-vue', Cuadro);
 import Catalogodisposicion from './admin/Catalogodisposicion.vue';
 app.component('catalogodisposicion-vue', Catalogodisposicion);
 
+import CatalogoSecciones from './admin/CatalogoSecciones.vue';
+app.component('catalogosecciones-vue', CatalogoSecciones);
+
 import Departamentos from './admin/Departamentos.vue';
 app.component('departamentos-vue', Departamentos);
 

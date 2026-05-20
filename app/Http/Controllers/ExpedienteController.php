@@ -83,7 +83,7 @@ class ExpedienteController extends Controller
             'id_subserie'            => 'nullable|exists:subseries,id',
             'estado'                 => 'required|in:en_tramite,en_historico,en_concentracion',
             'fecha_apertura'         => 'nullable|date',
-            'fecha_cierre'           => 'nullable|date|after_or_equal:fecha_apertura',
+            'fecha_cierre'           => 'nullable|date',//|after_or_equal:fecha_apertura',
             'fecha_creacion'         => 'nullable|date',
             'tiempo_conservacion'    => 'nullable|numeric',
             'vigencia'               => 'nullable|numeric',

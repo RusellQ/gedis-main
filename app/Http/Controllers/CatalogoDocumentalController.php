@@ -31,4 +31,42 @@ public function generarPDFDisposicion()
     return $pdf->stream('catalogo-disposicion-documental.pdf');
 }
 
+public function dataSecciones()
+{
+    $fondos = Fondo::with([
+        'subfondos.secciones.series.subseries',
+        'secciones.series.subseries'
+    ])->get();
+
+    return response()->json($fondos);
+}
+
+public function catalogoSecciones()
+{
+    return view('pdf.catalogosecciones');
+}
+
+public function vistaPreviaSecciones()
+{
+    $fondos = Fondo::with([
+        'subfondos.secciones.series.subseries',
+        'secciones.series.subseries'
+    ])->get();
+
+    return view('pdf.catalogosecciones', compact('fondos'));
+}
+
+public function generarPDFSecciones()
+{
+    $fondos = Fondo::with([
+        'subfondos.secciones.series.subseries',
+        'secciones.series.subseries'
+    ])->get();
+
+    $pdf = Pdf::loadView('pdf.catalogosecciones', compact('fondos'))
+              ->setPaper('a4', 'landscape');
+
+    return $pdf->stream('catalogo-secciones.pdf');
+}
+
 }

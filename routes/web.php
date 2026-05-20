@@ -120,6 +120,13 @@ Route::get('/cuadrogeneral/pdf', [CuadroGeneralController::class, 'generarPDF'])
 Route::get('/catalogodisposicion/vista-previa', [CatalogoDocumentalController::class, 'catalogoDisposicion']);
 Route::get('/catalogodisposicion/pdf', [CatalogoDocumentalController::class, 'generarPDFDisposicion']);
 
+Route::get('/catalogosecciones', function () {
+    return view('administrativas.catalogosecciones');
+});
+Route::get('/catalogosecciones/data', [CatalogoDocumentalController::class, 'dataSecciones']);
+Route::get('/catalogosecciones/vista-previa', [CatalogoDocumentalController::class, 'vistaPreviaSecciones']);
+Route::get('/catalogosecciones/pdf', [CatalogoDocumentalController::class, 'generarPDFSecciones']);
+
 Route::get('/reportes/filtrar', [ReporteController::class, 'filtrar']);
 Route::get('/reportes/pdf', [ReporteController::class, 'generarPDF']);
 
