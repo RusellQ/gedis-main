@@ -55,6 +55,10 @@ Route::get('/series', function () {
     return view('administrativas.series');
 });
 
+Route::get('/caratula-v2', function () {
+    return view('administrativas.caratula_v2');
+});
+
 Route::get('/expedientes', [ExpedienteController::class, 'index']);
 
 Route::get('/cargarexpedientes', function () {
@@ -161,6 +165,9 @@ Route::delete('/bajaexpediente/{id}', [ExpedienteController::class, 'darDeBaja']
     ->name('expediente.baja')
     ->middleware('auth');
 Route::get('/expedienteid/{id}', [ExpedienteController::class, 'getExpedienteById']);
+
+// Batch retrieval de expedientes por IDs (usado por Carátula v2)
+Route::post('/expedientes/batch', [ExpedienteController::class, 'batchByIds']);
 
 Route::put('/cambiarEstado/{id}', [ExpedienteController::class, 'cambiarEstado']);
 Route::get('/indexbaja', [ExpedienteController::class, 'indexbaja']);

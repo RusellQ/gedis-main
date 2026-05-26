@@ -43,6 +43,9 @@ app.component('fondos-vue', Fondos);
 import Series from './admin/Series.vue';
 app.component('series-vue', Series);
 
+import CaratulaV2 from './admin/CaratulaV2.vue';
+app.component('caratula-v2-vue', CaratulaV2);
+
 import Historico from './admin/Historico.vue';
 app.component('historico-vue', Historico);
 

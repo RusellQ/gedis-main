@@ -110,6 +110,14 @@
                     <i class="fas fa-plus-circle" style="color: #6b7990;"></i> <span style="color: #848B96;">Caratula de Expediente</span></a>
             </li>
             @endif
+
+            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'editor','root']))
+            <li class="nav-item">
+                <a class="nav-link" href="/caratula-v2">
+                    <i class="fas fa-plus-circle" style="color: #6b7990;"></i> <span style="color: #848B96;">Caratula v2</span></a>
+            </li>
+            @endif
+
             @if(Auth::check() && Auth::user()->hasRole(['administrador', 'lector', 'editor','root']))
             <li class="nav-item">
                 <a class="nav-link" href="/consultar">

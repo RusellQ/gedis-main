@@ -306,4 +306,29 @@ class ExpedienteController extends Controller
 
         return response()->json($expedientes);
     }
+
+    /**
+     * Devuelve varios expedientes por IDs (batch) con relaciones útiles
+     */
+    public function batchByIds(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:expedientes,id',
+        ]);
+
+        $ids = $request->input('ids');
+
+        $with = [
+            'serie.seccion.fondo',
+            'serie.seccion.subfondo',
+            'subserie',
+            'unidadesDocumentales',
+        ];
+
+        $expedientes = Expediente::with($with)->whereIn('id', $ids)->get();
+
+        // Devolver tal cual para que el frontend pueda decidir cómo agregar/usar
+        return response()->json($expedientes);
+    }
 }
