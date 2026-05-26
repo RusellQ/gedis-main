@@ -50,6 +50,11 @@ Route::get('/buscar', function () {
 Route::get('/fondos', function () {
     return view('administrativas.fondos');
 });
+
+Route::get('/series', function () {
+    return view('administrativas.series');
+});
+
 Route::get('/expedientes', [ExpedienteController::class, 'index']);
 
 Route::get('/cargarexpedientes', function () {

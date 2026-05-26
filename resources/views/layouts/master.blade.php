@@ -137,6 +137,14 @@
             </li>
             @endif
 
+            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'editor','root']))
+            <li class="nav-item">
+                <a class="nav-link" href="/series">
+                    <i class="fas fa-stream" style="color: #6b7990;"></i>
+                    <span style="color: #848B96;">Crear Series</span></a>
+            </li>
+            @endif
+
 
             @if(Auth::check() && Auth::user()->hasRole(['administrador', 'editor','root']))
             <li class="nav-item">

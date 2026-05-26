@@ -40,6 +40,9 @@ app.component('inventario-vue', Inventario);
 import Fondos from './admin/Fondos.vue';
 app.component('fondos-vue', Fondos);
 
+import Series from './admin/Series.vue';
+app.component('series-vue', Series);
+
 import Historico from './admin/Historico.vue';
 app.component('historico-vue', Historico);
 
