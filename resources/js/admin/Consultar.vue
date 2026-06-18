@@ -7,6 +7,13 @@
       <input v-model="palabraClave" class="form-control me-2" type="search" placeholder="Buscar" aria-label="Buscar">
     </form>
 
+    <div class="mb-3 d-flex justify-content-end">
+      <button @click="descargarCaratulaEnBlanco" class="btn btn-success">
+        <i class="fas fa-file-invoice me-1"></i>
+        Descargar carátula en blanco
+      </button>
+    </div>
+
     <!-- Tabla de Resultados -->
     <div class="table-responsive">
       <table class="table table-bordered">
@@ -85,7 +92,8 @@
             <td>{{ documento.capturador }}</td>
             <td>
               <button @click="generarPdf(documento)" class="btn btn-sm"
-                style="background-color: #b61917; color: white; margin-right: 5px;">
+                style="background-color: #b61917; color: white; margin-right: 5px;"
+                title="Descargar carátula con datos">
                 <i class="fas fa-file-pdf"></i>
               </button>
 
@@ -444,7 +452,21 @@ export default {
         });
     },
 
-    generarPdf(documento) {
+    descargarCaratulaEnBlanco() {
+      if (!this.documentos.length) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Sin documentos',
+          text: 'No hay documentos disponibles para descargar una carátula en blanco.'
+        });
+        return;
+      }
+
+      const documentoSeleccionado = this.documentos[0];
+      this.generarPdf(documentoSeleccionado, true);
+    },
+
+    generarPdf(documento, enBlanco = false) {
       const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
@@ -457,8 +479,24 @@ export default {
       axios.get(`/documentos/${idDocumento}`)
         .then(response => {
           const documento = response.data;
-
           const imgData = "assets/logoletras.png"; // Inserta la imagen en base64
+          const emptyValue = (value) => (enBlanco ? "" : value);
+
+          const valorDocumentalDisplay = (() => {
+            if (enBlanco) return "";
+
+            let display = [];
+            if (documento.valor_documental_legal) display.push("Legal");
+            if (documento.valor_documental_contable) display.push("Contable");
+            if (documento.valor_documental_administrativo) display.push("Administrativo");
+
+            if (display.length > 1) {
+              const lastItem = display.pop();
+              return `${display.join(", ")} y ${lastItem}`;
+            }
+
+            return display[0] || "";
+          })();
 
           // Posición inicial y tamaño de celda ajustado
           let startX = 10;
@@ -468,88 +506,64 @@ export default {
           const rowHeight = 8;
           const logoCellHeight = 16; // Nueva altura para la celda del LOGOTIPO
 
-          // Transformar el valor de "valor_documental" antes de usarlo
-          let valorDocumentalDisplay = [];
-          if (documento.valor_documental_legal) {
-            valorDocumentalDisplay.push("Legal");
-          }
-          if (documento.valor_documental_contable) {
-            valorDocumentalDisplay.push("Contable");
-          }
-          if (documento.valor_documental_administrativo) {
-            valorDocumentalDisplay.push("Administrativo");
-          }
-
-
-          // Unir los elementos de la lista con comas y "y" antes del último
-          if (valorDocumentalDisplay.length > 1) {
-            const lastItem = valorDocumentalDisplay.pop();  // Extrae el último valor
-            valorDocumentalDisplay = `${valorDocumentalDisplay.join(", ")} y ${lastItem}`;
-          } else {
-            valorDocumentalDisplay = valorDocumentalDisplay[0] || ""; // Solo un valor, lo dejamos tal cual
-          }
-
-
-
-
           // Configuración de la tabla
           const tableData = [
             [
               { label: "LOGOTIPO" },
-              { label: "NOMBRE DEL SUJETO OBLIGADO:", value: documento.nombre_sujeto_obligado },
+              { label: "NOMBRE DEL SUJETO OBLIGADO:", value: emptyValue(documento.nombre_sujeto_obligado) },
             ],
             [
-              { label: "Área administrativa", value: documento.area_administrativa },
-              { label: "No. Consecutivo", value: documento.no_consecutivo },
+              { label: "Área administrativa", value: emptyValue(documento.area_administrativa) },
+              { label: "No. Consecutivo", value: emptyValue(documento.no_consecutivo) },
             ],
             [
-              { label: "Área generadora", value: documento.area_generadora },
-              { label: "Código de clasificación", value: documento.codigo_clasificacion_archivistica },
+              { label: "Área generadora", value: emptyValue(documento.area_generadora) },
+              { label: "Código de clasificación", value: emptyValue(documento.codigo_clasificacion_archivistica) },
             ],
             [
-              { label: "Año de apertura", value: documento.anio_apertura, width: 25 },
-              { label: "Año de cierre", value: documento.anio_cierre, width: 25 },
-              { label: "Soporte documental", value: documento.soporte_documental, width: 140 },
+              { label: "Año de apertura", value: emptyValue(documento.anio_apertura), width: 25 },
+              { label: "Año de cierre", value: emptyValue(documento.anio_cierre), width: 25 },
+              { label: "Soporte documental", value: emptyValue(documento.soporte_documental), width: 140 },
             ],
             [
-              { label: "Título del expediente", colspan: 2, value: documento.titulo_expediente },
+              { label: "Título del expediente", colspan: 2, value: emptyValue(documento.titulo_expediente) },
             ],
             [
-              { label: "Descripción del asunto que trata el expediente", colspan: 2, value: documento.descripcion_asunto_expediente },
+              { label: "Descripción del asunto que trata el expediente", colspan: 2, value: emptyValue(documento.descripcion_asunto_expediente) },
             ],
             [
-              { label: "Ubicación topográfica", value: documento.ubicacion_topografica, width: 110 },
-              { label: "No. De legajo", value: documento.no_legajo, width: 40 },
-              { label: "No. De fojas", value: documento.no_fojas, width: 40 },
+              { label: "Ubicación topográfica", value: emptyValue(documento.ubicacion_topografica), width: 110 },
+              { label: "No. De legajo", value: emptyValue(documento.no_legajo), width: 40 },
+              { label: "No. De fojas", value: emptyValue(documento.no_fojas), width: 40 },
             ],
             [
-              { label: "Valor documental", value: valorDocumentalDisplay }, // Aquí usamos el valor transformado
-              { label: "Vigencia documental", value: documento.vigencia_documental },
+              { label: "Valor documental", value: valorDocumentalDisplay },
+              { label: "Vigencia documental", value: emptyValue(documento.vigencia_documental) },
             ],
             [
-              { label: "Años en Archivo de Trámite", value: documento.anios_archivo_tramite },
-              { label: "Años en Archivo de Concentración", value: documento.anios_archivo_concentracion },
+              { label: "Años en Archivo de Trámite", value: emptyValue(documento.anios_archivo_tramite) },
+              { label: "Años en Archivo de Concentración", value: emptyValue(documento.anios_archivo_concentracion) },
             ],
             [
               { label: "INFORMACIÓN RESERVADA Y/O CONFIDENCIAL", colspan: 2, value: "" },
             ],
             [
-              { label: "Carácter de la Información", value: documento.caracter_informacion },
-              { label: "Fecha de clasificación", value: documento.fecha_clasificacion },
+              { label: "Carácter de la Información", value: emptyValue(documento.caracter_informacion) },
+              { label: "Fecha de clasificación", value: emptyValue(documento.fecha_clasificacion) },
             ],
             [
-              { label: "Fundamento legal", colspan: 2, value: documento.fundamento_legal },
+              { label: "Fundamento legal", colspan: 2, value: emptyValue(documento.fundamento_legal) },
             ],
             [
-              { label: "Periodo de reserva", value: documento.periodo_reserva },
-              { label: "Ampliación del periodo de reserva", value: documento.aplicacion_periodo_reserva },
+              { label: "Periodo de reserva", value: emptyValue(documento.periodo_reserva) },
+              { label: "Ampliación del periodo de reserva", value: emptyValue(documento.aplicacion_periodo_reserva) },
             ],
             [
-              { label: "Rúbrica del titular de la unidad administrativa", value: documento.rubrica_titular },
-              { label: "Fecha de desclasificación", value: documento.fecha_desclasificacion },
+              { label: "Rúbrica del titular de la unidad administrativa", value: emptyValue(documento.rubrica_titular) },
+              { label: "Fecha de desclasificación", value: emptyValue(documento.fecha_desclasificacion) },
             ],
             [
-              { label: "Observaciones", colspan: 2, value: documento.observaciones },
+              { label: "Observaciones", colspan: 2, value: emptyValue(documento.observaciones) },
             ],
           ];
 
@@ -607,7 +621,8 @@ export default {
           });
 
           // Guardar el PDF
-          doc.save("caratula_expediente.pdf");
+          const fileName = enBlanco ? "caratula_expediente_en_blanco.pdf" : "caratula_expediente.pdf";
+          doc.save(fileName);
 
         })
         .catch(error => {
