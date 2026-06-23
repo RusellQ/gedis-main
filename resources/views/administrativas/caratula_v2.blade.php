@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('page-title', 'Carátula v2')
-@section('title', 'Carátula v2')
+@section('title', 'Carátula')
 
 
 @section('content')

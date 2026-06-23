@@ -11,6 +11,15 @@
             </option>
           </select>
         </div>
+        <div class="control-group">
+          <label>Sección a mostrar</label>
+          <select v-model="selectedSeccion">
+            <option value="all">TODAS LAS SECCIONES</option>
+            <option v-for="seccion in availableSecciones" :key="seccion.id" :value="seccion.id">
+              {{ seccion.codigo }} - {{ seccion.nombre }}
+            </option>
+          </select>
+        </div>
         <div class="control-actions">
           <button @click="descargarPDF" class="primary-button">
             🖨️ Imprimir Reporte
@@ -30,6 +39,7 @@
           <div class="catalogo-subtitle">
             <span v-if="selectedFondo !== 'all'">FONDO: {{ currentFondoName }}</span>
             <span v-else>REPORTE INTEGRAL MULTI-FONDO</span>
+            <span v-if="selectedSeccion !== 'all'" class="catalogo-subtitle-section"> / SECCIÓN: {{ currentSeccionName }}</span>
           </div>
         </div>
         <div class="catalogo-logo catalogo-logo-right">
@@ -73,7 +83,7 @@
                 <td colspan="15">FONDO: {{ fondo.nombre }}</td>
               </tr>
 
-              <template v-for="seccion in fondo.secciones" :key="seccion.id">
+              <template v-for="seccion in getSeccionesForFondo(fondo)" :key="seccion.id">
                 <tr class="seccion-row">
                   <td colspan="15">Sección: {{ seccion.codigo }} - {{ seccion.nombre }}</td>
                 </tr>
@@ -135,6 +145,7 @@ export default {
     return {
       fondos: [],
       selectedFondo: 'all',
+      selectedSeccion: 'all',
       loading: false,
       error: null,
     };
@@ -146,9 +157,24 @@ export default {
       }
       return this.fondos.filter((fondo) => fondo.id === Number(this.selectedFondo));
     },
+    availableSecciones() {
+      return this.fondos.flatMap((fondo) => {
+        if (this.selectedFondo !== 'all' && fondo.id !== Number(this.selectedFondo)) {
+          return [];
+        }
+        return (fondo.secciones || []).map((seccion) => ({
+          ...seccion,
+          fondoNombre: fondo.nombre,
+        }));
+      });
+    },
     currentFondoName() {
       const found = this.fondos.find((fondo) => fondo.id === Number(this.selectedFondo));
       return found ? found.nombre : '';
+    },
+    currentSeccionName() {
+      const found = this.availableSecciones.find((seccion) => seccion.id === Number(this.selectedSeccion));
+      return found ? `${found.codigo} - ${found.nombre}` : '';
     },
     currentDate() {
       return new Date().toLocaleDateString('es-MX', {
@@ -156,6 +182,11 @@ export default {
         month: 'long',
         day: 'numeric',
       });
+    },
+  },
+  watch: {
+    selectedFondo() {
+      this.selectedSeccion = 'all';
     },
   },
   methods: {
@@ -169,6 +200,12 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    getSeccionesForFondo(fondo) {
+      if (this.selectedSeccion === 'all') {
+        return fondo.secciones || [];
+      }
+      return (fondo.secciones || []).filter((seccion) => seccion.id === Number(this.selectedSeccion));
     },
     descargarPDF() {
       const form = document.createElement('form');
@@ -288,6 +325,8 @@ export default {
 }
 .catalogo-subtitle {
   display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-top: 16px;
   padding: 10px 16px;
   border: 1px solid #cbd5e1;
@@ -297,6 +336,9 @@ export default {
   font-weight: 700;
   text-transform: uppercase;
   color: #0f172a;
+}
+.catalogo-subtitle-section {
+  color: #334155;
 }
 .table-wrap {
   overflow-x: auto;
