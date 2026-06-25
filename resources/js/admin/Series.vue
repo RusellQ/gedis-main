@@ -312,6 +312,46 @@
                 <label>Observaciones</label>
                 <input v-model="nuevoExpediente.observacion" class="form-control" />
               </div>
+
+              <div class="col-md-6">
+                <label>Información reservada y/o confidencial</label>
+                <input v-model="nuevoExpediente.informacion_reservada_y_o_confidencial" class="form-control" />
+              </div>
+
+              <div class="col-md-6">
+                <label>Carácter de la información</label>
+                <input v-model="nuevoExpediente.caracter_de_la_informacion" class="form-control" />
+              </div>
+
+              <div class="col-md-6">
+                <label>Fecha de clasificación</label>
+                <input type="date" v-model="nuevoExpediente.fecha_clasificacion" class="form-control" />
+              </div>
+
+              <div class="col-md-6">
+                <label>Fundamento legal</label>
+                <textarea v-model="nuevoExpediente.fundamento_legal" class="form-control" rows="2"></textarea>
+              </div>
+
+              <div class="col-md-6">
+                <label>Periodo de reserva (años)</label>
+                <input type="number" v-model.number="nuevoExpediente.periodo_reserva" class="form-control" min="0" />
+              </div>
+
+              <div class="col-md-6">
+                <label>Ampliación periodo de reserva (años)</label>
+                <input type="number" v-model.number="nuevoExpediente.ampliacion_periodo_reserva" class="form-control" min="0" />
+              </div>
+
+              <div class="col-md-6">
+                <label>Rúbrica titular de la unidad</label>
+                <input v-model="nuevoExpediente.rubrica_titular_de_la_unidad" class="form-control" />
+              </div>
+
+              <div class="col-md-6">
+                <label>Fecha de desclasificación</label>
+                <input type="date" v-model="nuevoExpediente.fecha_desclasificacion" class="form-control" />
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -380,7 +420,15 @@ const nuevoExpediente = ref({
   clasificacion: 'Pública',
   caracter: 'Administrativo',
   preservacion: 'Si',
-  observacion: ''
+  observacion: '',
+  informacion_reservada_y_o_confidencial: '',
+  caracter_de_la_informacion: '',
+  fecha_clasificacion: '',
+  fundamento_legal: '',
+  periodo_reserva: '',
+  ampliacion_periodo_reserva: '',
+  rubrica_titular_de_la_unidad: '',
+  fecha_desclasificacion: ''
 })
 
 const modalSerie = ref(null)
@@ -537,7 +585,15 @@ const crearExpediente = async () => {
       clasificacion: 'Pública',
       caracter: 'Administrativo',
       preservacion: '',
-      observacion: ''
+      observacion: '',
+      informacion_reservada_y_o_confidencial: '',
+      caracter_de_la_informacion: '',
+      fecha_clasificacion: '',
+      fundamento_legal: '',
+      periodo_reserva: '',
+      ampliacion_periodo_reserva: '',
+      rubrica_titular_de_la_unidad: '',
+      fecha_desclasificacion: ''
     }
 
     selectedSerie.value = null

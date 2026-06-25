@@ -259,6 +259,46 @@
                 <input type="text" class="form-control" v-model="expedienteActual.clave">
               </div>
 
+              <div class="mb-3">
+                <label class="form-label">Información reservada y/o confidencial</label>
+                <input type="text" class="form-control" v-model="expedienteActual.informacion_reservada_y_o_confidencial">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Carácter de la información</label>
+                <input type="text" class="form-control" v-model="expedienteActual.caracter_de_la_informacion">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Fecha de clasificación</label>
+                <input type="date" class="form-control" v-model="expedienteActual.fecha_clasificacion">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Fundamento legal</label>
+                <textarea class="form-control" rows="2" v-model="expedienteActual.fundamento_legal"></textarea>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Periodo de reserva (años)</label>
+                <input type="number" class="form-control" v-model.number="expedienteActual.periodo_reserva" min="0">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Ampliación periodo de reserva (años)</label>
+                <input type="number" class="form-control" v-model.number="expedienteActual.ampliacion_periodo_reserva" min="0">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Rúbrica titular de la unidad</label>
+                <input type="text" class="form-control" v-model="expedienteActual.rubrica_titular_de_la_unidad">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Fecha de desclasificación</label>
+                <input type="date" class="form-control" v-model="expedienteActual.fecha_desclasificacion">
+              </div>
+
               <!-- Footer -->
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" @click="cerrarModal('editar')">Cancelar</button>
