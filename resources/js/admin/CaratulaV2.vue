@@ -211,6 +211,13 @@
 
         <div class="form-row">
           <div class="form-group">
+            <label for="informacionReservada">Información reservada y/o confidencial</label>
+            <input type="text" id="informacionReservada" v-model="form.informacion_reservada_y_o_confidencial" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
             <label for="caracterInformacion">Carácter de la Información</label>
             <select id="caracterInformacion" v-model="form.caracter_informacion" class="form-control" required>
               <option value="Reservada">Reservada</option>
@@ -324,6 +331,7 @@ const form = ref({
   vigencia_documental: '',
   anios_archivo_tramite: '',
   anios_archivo_concentracion: '',
+  informacion_reservada_y_o_confidencial: '',
   caracter_informacion: 'Reservada',
   fecha_clasificacion: '',
   fundamento_legal: '',
@@ -447,6 +455,13 @@ const mapearCaracterInformacion = (clasificacion) => {
   return null
 }
 
+const obtenerValorUnico = (valores) => {
+  const valoresValidos = valores.filter((valor) => valor !== null && valor !== undefined && valor !== '')
+  if (!valoresValidos.length) return ''
+  const unico = new Set(valoresValidos)
+  return unico.size === 1 ? [...unico][0] : ''
+}
+
 const obtenerDatosSerie = (serie, expediente) => {
   if (!serie) return {}
 
@@ -495,6 +510,14 @@ const aplicarDatosExpediente = (e) => {
   form.value.ubicacion_topografica = e.ubicacion_topografica || form.value.ubicacion_topografica
   form.value.no_legajo = e.no_legajos || 0
   form.value.no_fojas = e.no_hojas || 0
+  form.value.informacion_reservada_y_o_confidencial = e.informacion_reservada_y_o_confidencial || ''
+  form.value.caracter_informacion = e.caracter_de_la_informacion || mapearCaracterInformacion(e.clasificacion) || form.value.caracter_informacion
+  form.value.fecha_clasificacion = e.fecha_clasificacion || ''
+  form.value.fundamento_legal = e.fundamento_legal || ''
+  form.value.periodo_reserva = e.periodo_reserva != null ? String(e.periodo_reserva) : ''
+  form.value.aplicacion_periodo_reserva = e.ampliacion_periodo_reserva != null ? String(e.ampliacion_periodo_reserva) : ''
+  form.value.rubrica_titular = e.rubrica_titular_de_la_unidad || ''
+  form.value.fecha_desclasificacion = e.fecha_desclasificacion || ''
 
   form.value.valor_documental = combinarValorDocumental(
     mapearValorDocumentalDesdeExpediente(e.caracter),
@@ -544,6 +567,14 @@ const cargarDatosSeleccionados = async () => {
   const clasificaciones = new Set()
   const descripciones = []
   const observaciones = []
+  const informacionReservada = []
+  const caracteresInformacion = []
+  const fechasClasificacion = []
+  const fundamentosLegales = []
+  const periodosReserva = []
+  const aplicacionesReserva = []
+  const rubricasTitulares = []
+  const fechasDesclasificacion = []
   let valorDocumental = { administrativo: false, legal: false, contable: false }
 
   data.forEach((e) => {
@@ -556,6 +587,14 @@ const cargarDatosSeleccionados = async () => {
     if (e.descripcion_expediente) descripciones.push(e.descripcion_expediente)
     if (e.observacion && !e.descripcion_expediente) descripciones.push(e.observacion)
     if (e.observacion) observaciones.push(e.observacion)
+    if (e.informacion_reservada_y_o_confidencial) informacionReservada.push(e.informacion_reservada_y_o_confidencial)
+    if (e.caracter_de_la_informacion) caracteresInformacion.push(e.caracter_de_la_informacion)
+    if (e.fecha_clasificacion) fechasClasificacion.push(e.fecha_clasificacion)
+    if (e.fundamento_legal) fundamentosLegales.push(e.fundamento_legal)
+    if (e.periodo_reserva != null && e.periodo_reserva !== '') periodosReserva.push(String(e.periodo_reserva))
+    if (e.ampliacion_periodo_reserva != null && e.ampliacion_periodo_reserva !== '') aplicacionesReserva.push(String(e.ampliacion_periodo_reserva))
+    if (e.rubrica_titular_de_la_unidad) rubricasTitulares.push(e.rubrica_titular_de_la_unidad)
+    if (e.fecha_desclasificacion) fechasDesclasificacion.push(e.fecha_desclasificacion)
 
     valorDocumental = combinarValorDocumental(
       valorDocumental,
@@ -573,6 +612,14 @@ const cargarDatosSeleccionados = async () => {
   form.value.codigo_clasificacion_archivistica = claves.size === 1 ? [...claves][0] : ''
   form.value.descripcion_asunto_expediente = descripciones.join(' | ')
   form.value.valor_documental = valorDocumental
+  form.value.informacion_reservada_y_o_confidencial = obtenerValorUnico(informacionReservada)
+  form.value.caracter_informacion = obtenerValorUnico(caracteresInformacion) || (clasificaciones.size === 1 ? mapearCaracterInformacion([...clasificaciones][0]) : '') || form.value.caracter_informacion
+  form.value.fecha_clasificacion = obtenerValorUnico(fechasClasificacion)
+  form.value.fundamento_legal = obtenerValorUnico(fundamentosLegales)
+  form.value.periodo_reserva = obtenerValorUnico(periodosReserva)
+  form.value.aplicacion_periodo_reserva = obtenerValorUnico(aplicacionesReserva)
+  form.value.rubrica_titular = obtenerValorUnico(rubricasTitulares)
+  form.value.fecha_desclasificacion = obtenerValorUnico(fechasDesclasificacion)
 
   if (clasificaciones.size === 1) {
     const caracterInfo = mapearCaracterInformacion([...clasificaciones][0])
@@ -629,6 +676,7 @@ const resetForm = () => {
     vigencia_documental: '',
     anios_archivo_tramite: '',
     anios_archivo_concentracion: '',
+    informacion_reservada_y_o_confidencial: '',
     caracter_informacion: 'Reservada',
     fecha_clasificacion: '',
     fundamento_legal: '',
