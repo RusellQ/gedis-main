@@ -228,11 +228,28 @@ class ExpedienteController extends Controller
                 'fecha_desclasificacion' => $exp->fecha_desclasificacion,
 
                 // Jerarquía archivística
-                'fondo'      => optional(optional($exp->serie)->seccion->fondo)->nombre,
-                'subfondo'   => optional(optional($exp->serie)->seccion->subfondo)->nombre,
-                'seccion'    => optional(optional($exp->serie)->seccion)->nombre,
-                'serie'      => optional($exp->serie)->nombre,
-                'subserie'   => optional($exp->subserie)->nombre,
+                'id_serie'              => $exp->id_serie,
+                'id_subserie'           => $exp->id_subserie,
+                'fondo'                 => optional(optional($exp->serie)->seccion->fondo)->nombre,
+                'subfondo'              => optional(optional($exp->serie)->seccion->subfondo)->nombre,
+                'seccion'               => optional(optional($exp->serie)->seccion)->nombre,
+                'serie'                 => optional($exp->serie)->nombre,
+                'subserie'              => optional($exp->subserie)->nombre,
+                'serie_detalle'         => $exp->serie ? [
+                    'id'             => $exp->serie->id,
+                    'nombre'         => $exp->serie->nombre,
+                    'codigo'         => $exp->serie->codigo,
+                    'vigencia_ad'    => (bool) $exp->serie->vigencia_ad,
+                    'vigencia_le'    => (bool) $exp->serie->vigencia_le,
+                    'vigencia_confi' => (bool) $exp->serie->vigencia_confi,
+                    'plazo_at'       => $exp->serie->plazo_at,
+                    'plazo_ac'       => $exp->serie->plazo_ac,
+                ] : null,
+                'subserie_detalle'      => $exp->subserie ? [
+                    'id'     => $exp->subserie->id,
+                    'nombre' => $exp->subserie->nombre,
+                    'codigo' => $exp->subserie->codigo,
+                ] : null,
 
                 // Unidades documentales
                 'unidades_documentales'  => $exp->unidadesDocumentales->map(function ($u) {

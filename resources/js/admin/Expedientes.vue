@@ -23,6 +23,13 @@
             <p class="card-text mb-1"><strong>Sección:</strong> {{ expediente.seccion }}</p>
             <p class="card-text mb-1"><strong>Serie:</strong> {{ expediente.serie }}</p>
             <p class="card-text mb-1"><strong>Subserie:</strong> {{ expediente.subserie ?? 'N/A' }}</p> <!-- NUEVO -->
+            <div class="alert alert-light border rounded p-2 mb-3 small">
+              <div class="fw-semibold mb-1">Información visual de la serie</div>
+              <div><strong>Valor documental:</strong> {{ formatearValorDocumental(expediente.serie_detalle) }}</div>
+              <div><strong>Vigencia documental:</strong> {{ formatearVigenciaDocumental(expediente.serie_detalle) }}</div>
+              <div><strong>Años en Archivo de Trámite:</strong> {{ formatearValorSimple(expediente.serie_detalle?.plazo_at) }}</div>
+              <div><strong>Años en Archivo de Concentración:</strong> {{ formatearValorSimple(expediente.serie_detalle?.plazo_ac) }}</div>
+            </div>
             <p class="card-text mb-1"><strong>Fecha Apertura:</strong> {{ expediente.fecha_apertura }}</p>
             <p class="card-text mb-1"><strong>Fecha Cierre:</strong> {{ expediente.fecha_cierre }}</p>
             <p class="card-text mb-1"><strong>Fecha Creación:</strong> {{ expediente.fecha_creacion }}</p>
@@ -143,6 +150,16 @@
             <button type="button" class="btn-close" @click="cerrarModal('editar')" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
+            <div v-if="expedienteActual" class="alert alert-info border rounded p-3 mb-3">
+              <div class="fw-semibold mb-2">Información visual vinculada a la serie</div>
+              <div><strong>Serie:</strong> {{ expedienteActual.serie || 'Sin serie' }}</div>
+              <div v-if="expedienteActual.subserie"><strong>Subserie:</strong> {{ expedienteActual.subserie }}</div>
+              <div><strong>Valor documental:</strong> {{ formatearValorDocumental(expedienteActual.serie_detalle) }}</div>
+              <div><strong>Vigencia documental:</strong> {{ formatearVigenciaDocumental(expedienteActual.serie_detalle) }}</div>
+              <div><strong>Años en Archivo de Trámite:</strong> {{ formatearValorSimple(expedienteActual.serie_detalle?.plazo_at) }}</div>
+              <div><strong>Años en Archivo de Concentración:</strong> {{ formatearValorSimple(expedienteActual.serie_detalle?.plazo_ac) }}</div>
+            </div>
+
             <form @submit.prevent="guardarCambios">
 
               <div class="mb-3">
@@ -418,6 +435,28 @@ export default {
     },
     handleArchivo(event) {
       this.unidad.archivo = event.target.files[0] || null
+    },
+
+    formatearValorDocumental(serieDetalle) {
+      if (!serieDetalle) return 'Sin información'
+      const valores = []
+      if (serieDetalle.vigencia_ad) valores.push('Administrativo')
+      if (serieDetalle.vigencia_le) valores.push('Legal')
+      if (serieDetalle.vigencia_confi) valores.push('Confidencial')
+      return valores.length ? valores.join(', ') : 'Sin información'
+    },
+
+    formatearVigenciaDocumental(serieDetalle) {
+      if (!serieDetalle) return 'Sin información'
+      const valores = []
+      if (serieDetalle.vigencia_ad) valores.push('Administrativo')
+      if (serieDetalle.vigencia_le) valores.push('Legal')
+      if (serieDetalle.vigencia_confi) valores.push('Confidencial')
+      return valores.length ? valores.join(', ') : 'Sin información'
+    },
+
+    formatearValorSimple(valor) {
+      return valor === null || valor === undefined || valor === '' ? 'Sin información' : valor
     },
 
     guardarCambios() {

@@ -305,6 +305,16 @@
             <button type="button" class="btn-close" @click="cerrarModal('expediente')" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
+            <div v-if="serieSeleccionadaParaExpediente" class="alert alert-info border rounded p-3 mb-3">
+              <div class="fw-semibold mb-2">Información visual de la serie</div>
+              <div><strong>Serie:</strong> {{ serieSeleccionadaParaExpediente.nombre }}</div>
+              <div v-if="subserieSeleccionadaParaExpediente"><strong>Subserie:</strong> {{ subserieSeleccionadaParaExpediente.nombre }}</div>
+              <div><strong>Valor documental:</strong> {{ formatearValorDocumental(serieSeleccionadaParaExpediente) }}</div>
+              <div><strong>Vigencia documental:</strong> {{ formatearVigenciaDocumental(serieSeleccionadaParaExpediente) }}</div>
+              <div><strong>Años en Archivo de Trámite:</strong> {{ formatearValorSimple(serieSeleccionadaParaExpediente.plazo_at) }}</div>
+              <div><strong>Años en Archivo de Concentración:</strong> {{ formatearValorSimple(serieSeleccionadaParaExpediente.plazo_ac) }}</div>
+            </div>
+
             <div class="row g-3">
               <div class="col-md-6">
                 <label>Nombre del expediente</label>
@@ -538,8 +548,12 @@ let bsModalSubserie = null
 let bsModalExpediente = null
 let bsModalSubfondo = null
 
-const serieSeleccionada = computed(() => {
-  return series.value.find(serie => serie.id === selectedSerie.value)
+const serieSeleccionadaParaExpediente = computed(() => {
+  return series.value.find(serie => String(serie.id) === String(selectedSerie.value)) || null
+})
+
+const subserieSeleccionadaParaExpediente = computed(() => {
+  return subseries.value.find(subserie => String(subserie.id) === String(selectedSubserie.value)) || null
 })
 
 const onFondoChange = async () => {
@@ -671,6 +685,28 @@ const crearSeccion = async () => {
   } catch (e) {
     console.error('Error al crear la sección', e);
   }
+}
+
+const formatearValorDocumental = (serie) => {
+  if (!serie) return 'Sin información'
+  const valores = []
+  if (serie.vigencia_ad) valores.push('Administrativo')
+  if (serie.vigencia_le) valores.push('Legal')
+  if (serie.vigencia_confi) valores.push('Confidencial')
+  return valores.length ? valores.join(', ') : 'Sin información'
+}
+
+const formatearVigenciaDocumental = (serie) => {
+  if (!serie) return 'Sin información'
+  const valores = []
+  if (serie.vigencia_ad) valores.push('Administrativo')
+  if (serie.vigencia_le) valores.push('Legal')
+  if (serie.vigencia_confi) valores.push('Confidencial')
+  return valores.length ? valores.join(', ') : 'Sin información'
+}
+
+const formatearValorSimple = (valor) => {
+  return valor === null || valor === undefined || valor === '' ? 'Sin información' : valor
 }
 
 const crearSerie = async () => {
