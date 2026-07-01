@@ -85,6 +85,7 @@ class ReporteController extends Controller
         'serie.seccion.fondo',
         'serie.seccion.subfondo',
         'subserie',
+        'instrumentoControl',
         'unidadesDocumentales',
     ]);
 
@@ -159,6 +160,7 @@ public function generarPDF(Request $request)
         'serie.seccion.fondo',
         'serie.seccion.subfondo',
         'subserie',
+        'instrumentoControl',
         'unidadesDocumentales',
     ])->get();
 

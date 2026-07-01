@@ -16,6 +16,7 @@ class Seccion extends Model
         'id_subfondo',
         'id_dependencia',
         'id_departamento',
+        'id_instrumento_control',
     ];
 
     public function fondo()

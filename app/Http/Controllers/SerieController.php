@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Serie;
 use App\Models\Seccion;
+use App\Services\InstrumentoControlService;
 
 
 class SerieController extends Controller
@@ -81,6 +82,8 @@ public function store(Request $request)
         'clasificacion_c'      => $request->clasificacion_c,
         'observaciones'        => $request->observaciones,
     ]);
+
+    InstrumentoControlService::crearParaSerie($serie);
 
     return response()->json([
         'message' => 'Serie creada correctamente.',

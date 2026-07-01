@@ -17,8 +17,8 @@ class Subserie extends Model
         'descripcion',
         'id_serie',
         'id_dependencia', 
-        'id_departamento',  
-
+        'id_departamento',
+        'id_instrumento_control',
     ];
 
     public function serie()

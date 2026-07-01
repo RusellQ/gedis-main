@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ReglasDocumentalesService;
 use Illuminate\Database\Eloquent\Model;
 
 class Expediente extends Model
@@ -12,35 +13,25 @@ class Expediente extends Model
         'nombre',
         'codigo',
         'clave',
-        //'descripcion_expediente',
         'id_serie',
         'id_subserie',
+        'id_instrumento_control',
         'estado',
         'fecha_apertura',
         'fecha_cierre',
         'fecha_creacion',
-        'tiempo_conservacion',
-        'vigencia',
         'no_legajos',
         'no_hojas',
         'no_caja',
         'ubicacion_topografica',
-        'clasificacion',
-        'caracter',
         'preservacion',
         'observacion',
         'informacion_reservada_y_o_confidencial',
-        'caracter_de_la_informacion',
         'fecha_clasificacion',
-        'fundamento_legal',
-        'periodo_reserva',
-        'ampliacion_periodo_reserva',
         'rubrica_titular_de_la_unidad',
         'fecha_desclasificacion',
         'id_dependencia',
         'id_departamento',
-        //'tradicion_documental',
-        'soporte_documental',
     ];
 
     public function serie()
@@ -63,8 +54,48 @@ class Expediente extends Model
         return $this->belongsTo(Departamento::class, 'id_departamento');
     }
 
+    public function instrumentoControl()
+    {
+        return $this->belongsTo(InstrumentoControl::class, 'id_instrumento_control');
+    }
+
     public function unidadesDocumentales()
     {
         return $this->hasMany(UnidadDocumental::class, 'id_expediente');
+    }
+
+    public function getTiempoConservacionAttribute()
+    {
+        return $this->serie?->plazo_ta;
+    }
+
+    public function getVigenciaAttribute()
+    {
+        return $this->serie?->plazo_at;
+    }
+
+    public function getClasificacionAttribute()
+    {
+        return ReglasDocumentalesService::clasificacionDesdeSerie($this->serie);
+    }
+
+    public function getCaracterAttribute()
+    {
+        return ReglasDocumentalesService::caracterDesdeSerie($this->serie);
+    }
+
+    public function getFundamentoLegalAttribute()
+    {
+        return $this->instrumentoControl?->fundamento_legal;
+    }
+
+    public function getPeriodoReservaAttribute()
+    {
+        return $this->instrumentoControl?->periodo_reserva;
+    }
+
+    public function getAmpliacionPeriodoReservaAttribute()
+    {
+        return null;
     }
 }

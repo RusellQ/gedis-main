@@ -9,7 +9,7 @@ use App\Models\Fondo;
 use App\Models\Subfondo;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Seccion;
-use Illuminate\Support\Facades\DB;
+use App\Services\InstrumentoControlService;
 
 class FondoController extends Controller
 {
@@ -33,6 +33,8 @@ class FondoController extends Controller
         $fondo->id_dependencia = $user->id_dependencia;
         $fondo->id_departamento = $user->id_departamento;
         $fondo->save();
+
+        InstrumentoControlService::crearParaFondo($fondo);
 
         // Devolver respuesta
         return response()->json([

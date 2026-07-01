@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Seccion;
-use App\Models\CatalogoArchivistico;
 use App\Models\Fondo;
 use App\Models\Subfondo;
+use App\Services\InstrumentoControlService;
 
 
 class SeccionController extends Controller
@@ -64,6 +64,8 @@ class SeccionController extends Controller
         $seccion->id_departamento = $user->id_departamento;
 
         $seccion->save();
+
+        InstrumentoControlService::crearParaSeccion($seccion);
 
         return response()->json([
             'message' => 'Sección creada correctamente',

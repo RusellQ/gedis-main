@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Serie;
 use App\Models\Subserie;
+use App\Services\InstrumentoControlService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -52,6 +53,8 @@ class SubserieController extends Controller
         'id_dependencia' => $user->id_dependencia,
         'id_departamento' => $user->id_departamento
     ]);
+
+    InstrumentoControlService::crearParaSubserie($subserie);
 
     return response()->json([
         'message' => 'Subserie creada correctamente.',

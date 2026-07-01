@@ -14,7 +14,7 @@ class Fondo extends Model
         'descripcion',
         'id_dependencia',
         'id_departamento',
-
+        'id_instrumento_control',
     ];
 
     public function dependencia()

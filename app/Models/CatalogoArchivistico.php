@@ -5,16 +5,21 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class CatalogoArchivistico extends Model
+class CatalogoArchivistico extends InstrumentoControl
 {
-    protected $table = 'catalogo_archivistico';
-    public $timestamps = false; // si no usas `updated_at`
+    use HasFactory;
 
-    protected $fillable = [
-        'tipo',
-        'nombre',
-        'codigo',
-        'descripcion',
-        'created_at',
-    ];
+    public $timestamps = true;
+
+    public function toCatalogoArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'tipo' => $this->tipo_nivel,
+            'nombre' => $this->nombre_elemento,
+            'codigo' => $this->codigo_clasificacion,
+            'descripcion' => $this->descripcion,
+            'created_at' => $this->created_at,
+        ];
+    }
 }

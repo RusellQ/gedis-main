@@ -65,5 +65,51 @@ public function seccion()
         return $this->hasMany(Expediente::class, 'id_serie');
     }
 
-    // ... (Se mantienen las funciones de relaciones seccion, dependencia, etc.)
+    public function instrumentoControl()
+    {
+        return $this->hasOne(InstrumentoControl::class, 'id_serie')
+            ->where('tipo_nivel', 'serie');
+    }
+
+    public function getPlazoConservacionAttribute()
+    {
+        return $this->plazo_ta;
+    }
+
+    public function getValorDocumentalAttribute()
+    {
+        $valores = [];
+
+        if ($this->vigencia_ad) {
+            $valores[] = 'Administrativo';
+        }
+        if ($this->vigencia_le) {
+            $valores[] = 'Legal';
+        }
+        if ($this->vigencia_confi) {
+            $valores[] = 'Contable';
+        }
+
+        return $valores ? implode(', ', $valores) : null;
+    }
+
+    public function getDestinoFinalAttribute()
+    {
+        if ($this->tecnica_conservacion) {
+            return 'Conservación';
+        }
+        if ($this->tecnica_eliminacion) {
+            return 'Eliminación';
+        }
+        if ($this->tecnica_muestreo) {
+            return 'Muestreo';
+        }
+
+        return null;
+    }
+
+    public function getDisposicionEspecificaAttribute()
+    {
+        return $this->observaciones;
+    }
 }
