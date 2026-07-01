@@ -30,11 +30,11 @@
 -- -----------------------------------------------------------------------------
 -- Crear base de datos (ajustar nombre si es necesario)
 -- -----------------------------------------------------------------------------
-CREATE DATABASE IF NOT EXISTS `gedis_v2`
+CREATE DATABASE IF NOT EXISTS `gda`
   DEFAULT CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE `gedis_v2`;
+USE `gda`;
 
 -- -----------------------------------------------------------------------------
 -- dependencias
