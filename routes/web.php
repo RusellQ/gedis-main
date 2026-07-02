@@ -17,6 +17,7 @@ use App\Http\Controllers\CuadroGeneralController;
 use App\Http\Controllers\CatalogoDocumentalController;
 use App\Http\Controllers\DependenciaController;
 use App\Http\Controllers\DepartamentoController;
+use App\Http\Controllers\ReglasDocumentalesController;
 
 /*
 |--------------------------------------------------------------------------
@@ -179,6 +180,9 @@ Route::post('/fondos/{fondo}/secciones', [SeccionController::class, 'store']);
 Route::get('/secciones/{id}/series', [SerieController::class, 'getSeriesBySeccion']);
 
 Route::post('/guardarserie', [SerieController::class, 'store']);
+
+Route::get('/series/{id}/reglas-documentales', [ReglasDocumentalesController::class, 'porSerie']);
+Route::get('/reglas-documentales/por-clave', [ReglasDocumentalesController::class, 'porClave']);
 
 Route::get('/series/{id}/expedientes', [ExpedienteController::class, 'porSerie']);
 Route::get('/subseries/{id}/expedientes', [ExpedienteController::class, 'porSubserie']);

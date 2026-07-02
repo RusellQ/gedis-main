@@ -66,33 +66,52 @@
         </div>
       </div>
 
-      <!-- Formulario igual que v1 -->
       <form @submit.prevent="guardarCaratula" class="caratula-form">
+        <ReglasDocumentalesPanel
+          :reglas="reglasDocumentales"
+          :loading="cargandoReglas"
+          empty-message="Seleccione una serie en el catálogo o cargue un expediente para ver las reglas documentales."
+        />
+
+        <FormSectionHeader
+          title="Datos de su sesión"
+          badge="Automático"
+          badge-class="bg-info text-dark"
+          variant="session"
+          description="Información obtenida del usuario y su dependencia."
+        />
+
         <div class="form-row">
           <div class="form-group">
             <label for="nombreSujetoObligado">Sujeto Obligado</label>
-            <input type="text" id="nombreSujetoObligado" v-model="form.nombre_sujeto_obligado" class="form-control" disabled>
+            <input type="text" id="nombreSujetoObligado" v-model="form.nombre_sujeto_obligado" class="form-control campo-solo-lectura" disabled>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label for="areaAdministrativa">Área Administrativa</label>
-            <input type="text" id="areaAdministrativa" v-model="form.area_administrativa" class="form-control" disabled>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="noConsecutivo">No. Consecutivo</label>
-            <input type="number" id="noConsecutivo" v-model="form.no_consecutivo" class="form-control" required>
+            <input type="text" id="areaAdministrativa" v-model="form.area_administrativa" class="form-control campo-solo-lectura" disabled>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label for="areaGeneradora">Área Generadora</label>
-            <input type="text" id="areaGeneradora" v-model="form.area_generadora" class="form-control" disabled>
+            <input type="text" id="areaGeneradora" v-model="form.area_generadora" class="form-control campo-solo-lectura" disabled>
+          </div>
+        </div>
+
+        <FormSectionHeader
+          title="Datos de la carátula a capturar"
+          badge="Captura manual"
+          description="Complete estos campos con la información específica del expediente."
+        />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="noConsecutivo">No. Consecutivo</label>
+            <input type="number" id="noConsecutivo" v-model="form.no_consecutivo" class="form-control" required>
           </div>
         </div>
 
@@ -144,7 +163,7 @@
         <div class="form-row">
           <div class="form-group">
             <label for="ubicacionTopografica">Ubicación Topográfica</label>
-            <input type="text" id="ubicacionTopografica" v-model="form.ubicacion_topografica" class="form-control" disabled>
+            <input type="text" id="ubicacionTopografica" v-model="form.ubicacion_topografica" class="form-control campo-solo-lectura" disabled>
           </div>
         </div>
 
@@ -164,48 +183,8 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label for="valorDocumental">Valor Documental</label>
-            <div class="d-flex justify-content-start">
-              <div class="form-check mr-3">
-                <input class="form-check-input" type="checkbox" v-model="form.valor_documental.administrativo" id="administrativo">
-                <label class="form-check-label" for="administrativo">Administrativo</label>
-              </div>
-              <div class="form-check mr-3">
-                <input class="form-check-input" type="checkbox" v-model="form.valor_documental.legal" id="legal">
-                <label class="form-check-label" for="legal">Legal</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" v-model="form.valor_documental.contable" id="contable">
-                <label class="form-check-label" for="contable">Contable</label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="vigenciaDocumental">Vigencia Documental</label>
-            <input type="text" id="vigenciaDocumental" v-model="form.vigencia_documental" class="form-control" required>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="añosArchivoTramite">Años en Archivo de Trámite</label>
-            <input type="number" id="añosArchivoTramite" v-model="form.anios_archivo_tramite" class="form-control" required>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="añosArchivoConcentracion">Años en Archivo de Concentración</label>
-            <input type="number" id="añosArchivoConcentracion" v-model="form.anios_archivo_concentracion" class="form-control" required>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
             <label class="subtitulo">Información Reservada y/o Confidencial</label>
+            <p class="text-muted small mb-2">La clasificación, fundamento legal y periodo de reserva se muestran arriba en las reglas del catálogo. Aquí capture los datos operativos del expediente.</p>
           </div>
         </div>
 
@@ -218,32 +197,8 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label for="caracterInformacion">Carácter de la Información</label>
-            <select id="caracterInformacion" v-model="form.caracter_informacion" class="form-control" required>
-              <option value="Reservada">Reservada</option>
-              <option value="Confidencial">Confidencial</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
             <label for="fechaClasificacion">Fecha de Clasificación</label>
             <input type="date" id="fechaClasificacion" v-model="form.fecha_clasificacion" class="form-control" required>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="fundamentoLegal">Fundamento Legal</label>
-            <input type="text" id="fundamentoLegal" v-model="form.fundamento_legal" class="form-control" required>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="periodoReserva">Periodo de Reserva</label>
-            <input type="text" id="periodoReserva" v-model="form.periodo_reserva" class="form-control" required>
           </div>
         </div>
 
@@ -275,7 +230,7 @@
 
         <div class="form-group">
           <label for="capturador">Capturador</label>
-          <input type="text" id="capturador" v-model="form.capturador" class="form-control" disabled>
+          <input type="text" id="capturador" v-model="form.capturador" class="form-control campo-solo-lectura" disabled>
         </div>
 
         <button type="submit" class="btn btn-primary">
@@ -290,6 +245,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import FormSectionHeader from '../components/FormSectionHeader.vue'
+import ReglasDocumentalesPanel from '../components/ReglasDocumentalesPanel.vue'
+import { reglasDesdeSerieYInstrumento } from '../utils/reglasDocumentales.js'
 
 const fondos = ref([])
 const subfondos = ref([])
@@ -306,6 +264,8 @@ const selectedSubserie = ref('')
 const selectedExpedientes = ref([])
 
 const expedientesData = ref([])
+const reglasDocumentales = ref(null)
+const cargandoReglas = ref(false)
 
 const form = ref({
   id_dependencia: null,
@@ -323,19 +283,8 @@ const form = ref({
   ubicacion_topografica: '',
   no_legajo: '',
   no_fojas: '',
-  valor_documental: {
-    administrativo: false,
-    legal: false,
-    contable: false,
-  },
-  vigencia_documental: '',
-  anios_archivo_tramite: '',
-  anios_archivo_concentracion: '',
   informacion_reservada_y_o_confidencial: '',
-  caracter_informacion: 'Reservada',
   fecha_clasificacion: '',
-  fundamento_legal: '',
-  periodo_reserva: '',
   aplicacion_periodo_reserva: '',
   rubrica_titular: '',
   fecha_desclasificacion: '',
@@ -405,6 +354,7 @@ const fetchSubseries = async () => {
 const handleSerieChange = async () => {
   await fetchSubseries()
   await fetchExpedientes()
+  await cargarReglasPorSerie(selectedSerie.value)
 }
 
 const fetchExpedientes = async () => {
@@ -423,36 +373,38 @@ const extraerAnio = (fecha) => {
   return match ? match[1] : ''
 }
 
-const mapearValorDocumentalDesdeExpediente = (caracter) => {
-  const vd = { administrativo: false, legal: false, contable: false }
-  if (!caracter) return vd
-  const c = caracter.toLowerCase()
-  if (c === 'administrativo') vd.administrativo = true
-  if (c === 'legal') vd.legal = true
-  if (c === 'contable') vd.contable = true
-  return vd
-}
-
-const mapearValorDocumentalDesdeSerie = (serie) => {
-  const vd = { administrativo: false, legal: false, contable: false }
-  if (!serie) return vd
-  if (serie.vigencia_ad) vd.administrativo = true
-  if (serie.vigencia_le) vd.legal = true
-  if (serie.vigencia_confi) vd.contable = true
-  return vd
-}
-
-const combinarValorDocumental = (a, b) => ({
-  administrativo: a.administrativo || b.administrativo,
-  legal: a.legal || b.legal,
-  contable: a.contable || b.contable,
-})
-
-const mapearCaracterInformacion = (clasificacion) => {
-  if (clasificacion === 'Reservada' || clasificacion === 'Confidencial') {
-    return clasificacion
+const cargarReglasPorSerie = async (serieId) => {
+  if (!serieId) {
+    reglasDocumentales.value = null
+    return
   }
-  return null
+  cargandoReglas.value = true
+  try {
+    const res = await axios.get(`/series/${serieId}/reglas-documentales`)
+    reglasDocumentales.value = res.data.reglas
+  } catch (error) {
+    console.error('Error al cargar reglas documentales:', error)
+    reglasDocumentales.value = null
+  } finally {
+    cargandoReglas.value = false
+  }
+}
+
+const cargarReglasPorClave = async (clave) => {
+  if (!clave?.trim()) {
+    reglasDocumentales.value = null
+    return
+  }
+  cargandoReglas.value = true
+  try {
+    const res = await axios.get('/reglas-documentales/por-clave', { params: { clave: clave.trim() } })
+    reglasDocumentales.value = res.data.reglas
+  } catch (error) {
+    console.error('Error al cargar reglas por clave:', error)
+    reglasDocumentales.value = null
+  } finally {
+    cargandoReglas.value = false
+  }
 }
 
 const obtenerValorUnico = (valores) => {
@@ -462,40 +414,21 @@ const obtenerValorUnico = (valores) => {
   return unico.size === 1 ? [...unico][0] : ''
 }
 
-const obtenerDatosSerie = (serie, expediente) => {
-  if (!serie) return {}
-
-  const datos = {}
-
-  if (serie.plazo_at != null && serie.plazo_at !== '') {
-    datos.anios_archivo_tramite = Number(serie.plazo_at)
+const aplicarReglasDesdeExpediente = (e) => {
+  const instrumento = e.instrumento_control || e.instrumentoControl || null
+  if (e.serie) {
+    reglasDocumentales.value = reglasDesdeSerieYInstrumento(e.serie, instrumento)
+    return
   }
-  if (serie.plazo_ac != null && serie.plazo_ac !== '') {
-    datos.anios_archivo_concentracion = Number(serie.plazo_ac)
+  if (e.id_serie) {
+    cargarReglasPorSerie(e.id_serie)
+  } else if (e.clave) {
+    cargarReglasPorClave(e.clave)
   }
-  if (serie.plazo_ta != null && serie.plazo_ta !== '') {
-    datos.vigencia_documental = String(serie.plazo_ta)
-  } else if (expediente?.vigencia) {
-    datos.vigencia_documental = String(expediente.vigencia)
-  }
-
-  const clasificacion = expediente?.clasificacion
-  if (clasificacion === 'Reservada' && serie.clasificacion_r) {
-    datos.periodo_reserva = serie.clasificacion_r
-  } else if (clasificacion === 'Confidencial' && serie.clasificacion_c) {
-    datos.periodo_reserva = serie.clasificacion_c
-  }
-
-  if (serie.observaciones) {
-    datos.observacionesSerie = serie.observaciones
-  }
-
-  return datos
 }
 
 const aplicarDatosExpediente = (e) => {
-  const serie = e.serie
-  const datosSerie = obtenerDatosSerie(serie, e)
+  aplicarReglasDesdeExpediente(e)
 
   form.value.titulo_expediente = e.nombre || ''
   form.value.codigo_clasificacion_archivistica = e.clave || ''
@@ -511,38 +444,12 @@ const aplicarDatosExpediente = (e) => {
   form.value.no_legajo = e.no_legajos || 0
   form.value.no_fojas = e.no_hojas || 0
   form.value.informacion_reservada_y_o_confidencial = e.informacion_reservada_y_o_confidencial || ''
-  form.value.caracter_informacion = e.caracter_de_la_informacion || mapearCaracterInformacion(e.clasificacion) || form.value.caracter_informacion
   form.value.fecha_clasificacion = e.fecha_clasificacion || ''
-  form.value.fundamento_legal = e.fundamento_legal || ''
-  form.value.periodo_reserva = e.periodo_reserva != null ? String(e.periodo_reserva) : ''
   form.value.aplicacion_periodo_reserva = e.ampliacion_periodo_reserva != null ? String(e.ampliacion_periodo_reserva) : ''
   form.value.rubrica_titular = e.rubrica_titular_de_la_unidad || ''
   form.value.fecha_desclasificacion = e.fecha_desclasificacion || ''
 
-  form.value.valor_documental = combinarValorDocumental(
-    mapearValorDocumentalDesdeExpediente(e.caracter),
-    mapearValorDocumentalDesdeSerie(serie),
-  )
-
-  const caracterInfo = mapearCaracterInformacion(e.clasificacion)
-  if (caracterInfo) {
-    form.value.caracter_informacion = caracterInfo
-  }
-
-  if (datosSerie.vigencia_documental) {
-    form.value.vigencia_documental = datosSerie.vigencia_documental
-  }
-  if (datosSerie.anios_archivo_tramite !== undefined) {
-    form.value.anios_archivo_tramite = datosSerie.anios_archivo_tramite
-  }
-  if (datosSerie.anios_archivo_concentracion !== undefined) {
-    form.value.anios_archivo_concentracion = datosSerie.anios_archivo_concentracion
-  }
-  if (datosSerie.periodo_reserva) {
-    form.value.periodo_reserva = datosSerie.periodo_reserva
-  }
-
-  const observaciones = [e.observacion, datosSerie.observacionesSerie].filter(Boolean)
+  const observaciones = [e.observacion, e.serie?.observaciones].filter(Boolean)
   if (observaciones.length) {
     form.value.observaciones = observaciones.join(' | ')
   }
@@ -568,14 +475,10 @@ const cargarDatosSeleccionados = async () => {
   const descripciones = []
   const observaciones = []
   const informacionReservada = []
-  const caracteresInformacion = []
   const fechasClasificacion = []
-  const fundamentosLegales = []
-  const periodosReserva = []
   const aplicacionesReserva = []
   const rubricasTitulares = []
   const fechasDesclasificacion = []
-  let valorDocumental = { administrativo: false, legal: false, contable: false }
 
   data.forEach((e) => {
     sumLeg += Number(e.no_legajos || 0)
@@ -588,21 +491,10 @@ const cargarDatosSeleccionados = async () => {
     if (e.observacion && !e.descripcion_expediente) descripciones.push(e.observacion)
     if (e.observacion) observaciones.push(e.observacion)
     if (e.informacion_reservada_y_o_confidencial) informacionReservada.push(e.informacion_reservada_y_o_confidencial)
-    if (e.caracter_de_la_informacion) caracteresInformacion.push(e.caracter_de_la_informacion)
     if (e.fecha_clasificacion) fechasClasificacion.push(e.fecha_clasificacion)
-    if (e.fundamento_legal) fundamentosLegales.push(e.fundamento_legal)
-    if (e.periodo_reserva != null && e.periodo_reserva !== '') periodosReserva.push(String(e.periodo_reserva))
     if (e.ampliacion_periodo_reserva != null && e.ampliacion_periodo_reserva !== '') aplicacionesReserva.push(String(e.ampliacion_periodo_reserva))
     if (e.rubrica_titular_de_la_unidad) rubricasTitulares.push(e.rubrica_titular_de_la_unidad)
     if (e.fecha_desclasificacion) fechasDesclasificacion.push(e.fecha_desclasificacion)
-
-    valorDocumental = combinarValorDocumental(
-      valorDocumental,
-      combinarValorDocumental(
-        mapearValorDocumentalDesdeExpediente(e.caracter),
-        mapearValorDocumentalDesdeSerie(e.serie),
-      ),
-    )
   })
 
   form.value.no_legajo = sumLeg
@@ -611,20 +503,13 @@ const cargarDatosSeleccionados = async () => {
   form.value.titulo_expediente = titulos.size === 1 ? [...titulos][0] : ''
   form.value.codigo_clasificacion_archivistica = claves.size === 1 ? [...claves][0] : ''
   form.value.descripcion_asunto_expediente = descripciones.join(' | ')
-  form.value.valor_documental = valorDocumental
   form.value.informacion_reservada_y_o_confidencial = obtenerValorUnico(informacionReservada)
-  form.value.caracter_informacion = obtenerValorUnico(caracteresInformacion) || (clasificaciones.size === 1 ? mapearCaracterInformacion([...clasificaciones][0]) : '') || form.value.caracter_informacion
   form.value.fecha_clasificacion = obtenerValorUnico(fechasClasificacion)
-  form.value.fundamento_legal = obtenerValorUnico(fundamentosLegales)
-  form.value.periodo_reserva = obtenerValorUnico(periodosReserva)
   form.value.aplicacion_periodo_reserva = obtenerValorUnico(aplicacionesReserva)
   form.value.rubrica_titular = obtenerValorUnico(rubricasTitulares)
   form.value.fecha_desclasificacion = obtenerValorUnico(fechasDesclasificacion)
 
-  if (clasificaciones.size === 1) {
-    const caracterInfo = mapearCaracterInformacion([...clasificaciones][0])
-    if (caracterInfo) form.value.caracter_informacion = caracterInfo
-  }
+  aplicarReglasDesdeExpediente(data[0])
 
   const aniosApertura = data.map((e) => extraerAnio(e.fecha_apertura)).filter(Boolean)
   const aniosCierre = data.map((e) => extraerAnio(e.fecha_cierre)).filter(Boolean)
@@ -633,15 +518,7 @@ const cargarDatosSeleccionados = async () => {
   if (aperturaUnica.size === 1) form.value.anio_apertura = [...aperturaUnica][0]
   if (cierreUnico.size === 1) form.value.anio_cierre = [...cierreUnico][0]
 
-  const datosSerie = obtenerDatosSerie(data[0]?.serie, data[0])
-  if (datosSerie.vigencia_documental) form.value.vigencia_documental = datosSerie.vigencia_documental
-  if (datosSerie.anios_archivo_tramite !== undefined) form.value.anios_archivo_tramite = datosSerie.anios_archivo_tramite
-  if (datosSerie.anios_archivo_concentracion !== undefined) {
-    form.value.anios_archivo_concentracion = datosSerie.anios_archivo_concentracion
-  }
-  if (datosSerie.periodo_reserva) form.value.periodo_reserva = datosSerie.periodo_reserva
-
-  const obsSerie = datosSerie.observacionesSerie
+  const obsSerie = data[0]?.serie?.observaciones
   const todasObs = [...observaciones, obsSerie].filter(Boolean)
   if (todasObs.length) form.value.observaciones = todasObs.join(' | ')
 }
@@ -668,19 +545,8 @@ const resetForm = () => {
     descripcion_asunto_expediente: '',
     no_legajo: '',
     no_fojas: '',
-    valor_documental: {
-      administrativo: false,
-      legal: false,
-      contable: false,
-    },
-    vigencia_documental: '',
-    anios_archivo_tramite: '',
-    anios_archivo_concentracion: '',
     informacion_reservada_y_o_confidencial: '',
-    caracter_informacion: 'Reservada',
     fecha_clasificacion: '',
-    fundamento_legal: '',
-    periodo_reserva: '',
     aplicacion_periodo_reserva: '',
     rubrica_titular: '',
     fecha_desclasificacion: '',
@@ -689,24 +555,12 @@ const resetForm = () => {
 
   expedientesData.value = []
   selectedExpedientes.value = []
+  reglasDocumentales.value = null
 }
 
 const guardarCaratula = async () => {
   try {
-    const payload = { ...form.value }
-
-    if (payload.valor_documental) {
-      payload.valor_documental = {
-        administrativo: !!payload.valor_documental.administrativo,
-        legal: !!payload.valor_documental.legal,
-        contable: !!payload.valor_documental.contable,
-      }
-      if (!payload.valor_documental.administrativo) delete payload.valor_documental.administrativo
-      if (!payload.valor_documental.legal) delete payload.valor_documental.legal
-      if (!payload.valor_documental.contable) delete payload.valor_documental.contable
-    }
-
-    await axios.post('/documentos', payload)
+    await axios.post('/documentos', { ...form.value })
     alert('Carátula de expediente generada con éxito')
     resetForm()
   } catch (e) {
@@ -797,7 +651,8 @@ h1 {
   margin-right: 10px;
 }
 
-.list-group-item input[type="checkbox"] {
-  transform: scale(1.05);
+.campo-solo-lectura:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
 }
 </style>

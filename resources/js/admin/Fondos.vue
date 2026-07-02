@@ -305,15 +305,17 @@
             <button type="button" class="btn-close" @click="cerrarModal('expediente')" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
-            <div v-if="serieSeleccionadaParaExpediente" class="alert alert-info border rounded p-3 mb-3">
-              <div class="fw-semibold mb-2">Información visual de la serie</div>
-              <div><strong>Serie:</strong> {{ serieSeleccionadaParaExpediente.nombre }}</div>
-              <div v-if="subserieSeleccionadaParaExpediente"><strong>Subserie:</strong> {{ subserieSeleccionadaParaExpediente.nombre }}</div>
-              <div><strong>Valor documental:</strong> {{ formatearValorDocumental(serieSeleccionadaParaExpediente) }}</div>
-              <div><strong>Vigencia documental:</strong> {{ formatearVigenciaDocumental(serieSeleccionadaParaExpediente) }}</div>
-              <div><strong>Años en Archivo de Trámite:</strong> {{ formatearValorSimple(serieSeleccionadaParaExpediente.plazo_at) }}</div>
-              <div><strong>Años en Archivo de Concentración:</strong> {{ formatearValorSimple(serieSeleccionadaParaExpediente.plazo_ac) }}</div>
-            </div>
+            <ReglasDocumentalesPanel
+              :reglas="reglasDocumentales"
+              :loading="cargandoReglas"
+              empty-message="Seleccione una serie en el catálogo para ver las reglas documentales vinculadas."
+            />
+
+            <FormSectionHeader
+              title="Datos del expediente a capturar"
+              badge="Captura manual"
+              description="Complete la información operativa del expediente. Las reglas CADIDO se aplican automáticamente desde el catálogo."
+            />
 
             <div class="row g-3">
               <div class="col-md-6">
@@ -350,14 +352,6 @@
                 <input type="date" v-model="nuevoExpediente.fecha_cierre" class="form-control" />
               </div>
 
-
-              <div class="col-md-6"> <label>Tiempo de conservación (en años)</label> <input type="number"
-                  v-model="nuevoExpediente.tiempo_conservacion" class="form-control" /> </div>
-
-              <div class="col-md-6"> <label>Vigencia</label> <input type="number" v-model="nuevoExpediente.vigencia"
-                  class="form-control" /> </div>
-
-
               <div class="col-md-4">
                 <label>Número de legajos</label>
                 <input type="number" v-model="nuevoExpediente.no_legajos" class="form-control" />
@@ -379,24 +373,6 @@
                   class="form-control" placeholder="Escribe la ubicación topográfica">
               </div>
 
-
-              <div class="col-md-6">
-                <label>Clasificacion</label>
-                <select v-model="nuevoExpediente.clasificacion" class="form-select">
-                  <option value="Pública">Pública</option>
-                  <option value="Confidencial">Confidencial</option>
-                  <option value="Reservada">Reservada</option>
-                </select>
-              </div>
-
-              <div class="col-md-6">
-                <label>Caracter</label>
-                <select v-model="nuevoExpediente.caracter" class="form-select">
-                  <option value="Administrativo">Administrativo</option>
-                  <option value="Legal">Legal</option>
-                  <option value="Contable">Contable</option>
-                </select>
-              </div>
               <div class="col-md-6">
                 <label>Preservación</label>
                 <select v-model="nuevoExpediente.preservacion" class="form-select">
@@ -425,21 +401,6 @@
               </div>
 
               <div class="col-md-6">
-                <label>Fundamento legal</label>
-                <textarea v-model="nuevoExpediente.fundamento_legal" class="form-control" rows="2"></textarea>
-              </div>
-
-              <div class="col-md-6">
-                <label>Periodo de reserva (años)</label>
-                <input type="number" v-model.number="nuevoExpediente.periodo_reserva" class="form-control" min="0" />
-              </div>
-
-              <div class="col-md-6">
-                <label>Ampliación periodo de reserva (años)</label>
-                <input type="number" v-model.number="nuevoExpediente.ampliacion_periodo_reserva" class="form-control" min="0" />
-              </div>
-
-              <div class="col-md-6">
                 <label>Rúbrica titular de la unidad</label>
                 <input v-model="nuevoExpediente.rubrica_titular_de_la_unidad" class="form-control" />
               </div>
@@ -462,9 +423,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { Modal } from 'bootstrap'  // Importa la clase Modal de Bootstrap
+import { Modal } from 'bootstrap'
+import FormSectionHeader from '../components/FormSectionHeader.vue'
+import ReglasDocumentalesPanel from '../components/ReglasDocumentalesPanel.vue'
 
 const fondos = ref([])
 const subfondos = ref([])
@@ -479,6 +442,8 @@ const selectedSeccion = ref('')
 const selectedSerie = ref('')
 const selectedSubserie = ref('')
 const selectedExpediente = ref('')
+const reglasDocumentales = ref(null)
+const cargandoReglas = ref(false)
 
 const nuevoFondo = ref({ nombre: '', codigo: '', descripcion: '' })
 const nuevoSubfondo = ref({ nombre: '', codigo: '', descripcion: '' })
@@ -512,23 +477,16 @@ const nuevoExpediente = ref({
   estado: 'en_tramite',           // valor por defecto según la tabla
   fecha_apertura: '',             // formato esperado: 'YYYY-MM-DD'
   fecha_cierre: '',               // formato esperado: 'YYYY-MM-DD'
-  fecha_creacion: '',          // Fecha de creación
-  tiempo_conservacion: '',     // Tiempo de conservación (años)
-  vigencia: '',                   // vigencia
-  no_legajos: '',              // Número de legajos
+  fecha_creacion: '',
+  no_legajos: '',
   no_hojas: '',                // Número de hojas
   no_caja: '',                 // Número de caja
-  ubicacion_topografica: 'Dirección General',   // Ubicación topográfica
-  clasificacion: 'Pública',           // Clasificación (Pública, Confidencial, Reservada)
-  caracter: 'Administrativo',                // Carácter (Administrativo, Legal, Contable)
-  preservacion: 'Si',            // Método u observación sobre preservación
-  observacion: '',              // Observaciones generales
+  ubicacion_topografica: 'Dirección General',
+  preservacion: 'Si',
+  observacion: '',
   informacion_reservada_y_o_confidencial: '',
   caracter_de_la_informacion: '',
   fecha_clasificacion: '',
-  fundamento_legal: '',
-  periodo_reserva: '',
-  ampliacion_periodo_reserva: '',
   rubrica_titular_de_la_unidad: '',
   fecha_desclasificacion: ''
 })
@@ -548,13 +506,22 @@ let bsModalSubserie = null
 let bsModalExpediente = null
 let bsModalSubfondo = null
 
-const serieSeleccionadaParaExpediente = computed(() => {
-  return series.value.find(serie => String(serie.id) === String(selectedSerie.value)) || null
-})
-
-const subserieSeleccionadaParaExpediente = computed(() => {
-  return subseries.value.find(subserie => String(subserie.id) === String(selectedSubserie.value)) || null
-})
+const cargarReglasPorSerie = async (serieId) => {
+  if (!serieId) {
+    reglasDocumentales.value = null
+    return
+  }
+  cargandoReglas.value = true
+  try {
+    const res = await axios.get(`/series/${serieId}/reglas-documentales`)
+    reglasDocumentales.value = res.data.reglas
+  } catch (error) {
+    console.error('Error al cargar reglas documentales:', error)
+    reglasDocumentales.value = null
+  } finally {
+    cargandoReglas.value = false
+  }
+}
 
 const onFondoChange = async () => {
   selectedSubfondo.value = '' // Limpia subfondo
@@ -562,9 +529,10 @@ const onFondoChange = async () => {
   await fetchSecciones()      // Carga secciones del fondo si no hay subfondo
 }
 
-const handleSerieChange = () => {
-  fetchSubseries()
-  fetchExpedientes()
+const handleSerieChange = async () => {
+  await fetchSubseries()
+  await fetchExpedientes()
+  await cargarReglasPorSerie(selectedSerie.value)
 }
 
 
@@ -687,28 +655,6 @@ const crearSeccion = async () => {
   }
 }
 
-const formatearValorDocumental = (serie) => {
-  if (!serie) return 'Sin información'
-  const valores = []
-  if (serie.vigencia_ad) valores.push('Administrativo')
-  if (serie.vigencia_le) valores.push('Legal')
-  if (serie.vigencia_confi) valores.push('Confidencial')
-  return valores.length ? valores.join(', ') : 'Sin información'
-}
-
-const formatearVigenciaDocumental = (serie) => {
-  if (!serie) return 'Sin información'
-  const valores = []
-  if (serie.vigencia_ad) valores.push('Administrativo')
-  if (serie.vigencia_le) valores.push('Legal')
-  if (serie.vigencia_confi) valores.push('Confidencial')
-  return valores.length ? valores.join(', ') : 'Sin información'
-}
-
-const formatearValorSimple = (valor) => {
-  return valor === null || valor === undefined || valor === '' ? 'Sin información' : valor
-}
-
 const crearSerie = async () => {
   try {
     await axios.post('/guardarserie', {
@@ -750,11 +696,8 @@ const crearExpediente = async () => {
     const datosAEnviar = {
       ...nuevoExpediente.value,
       id_serie: selectedSerie.value,
-      id_subserie: selectedSubserie.value || null   // <── nuevo
-
+      id_subserie: selectedSubserie.value || null,
     }
-
-    console.log('Datos enviados al backend:', datosAEnviar)
 
     await axios.post('/guardarexpediente', datosAEnviar)
 
@@ -768,22 +711,15 @@ const crearExpediente = async () => {
       fecha_apertura: null,
       fecha_cierre: null,
       fecha_creacion: null,
-      tiempo_conservacion: '',
-      vigencia: '',
       no_legajos: '',
       no_hojas: '',
       no_caja: '',
       ubicacion_topografica: '',
-      clasificacion: 'Pública',
-      caracter: 'Administrativo',
       preservacion: '',
       observacion: '',
       informacion_reservada_y_o_confidencial: '',
       caracter_de_la_informacion: '',
       fecha_clasificacion: '',
-      fundamento_legal: '',
-      periodo_reserva: '',
-      ampliacion_periodo_reserva: '',
       rubrica_titular_de_la_unidad: '',
       fecha_desclasificacion: ''
     }
@@ -819,6 +755,7 @@ const abrirModal = (tipo) => {
       bsModalSubserie.show()
       break
     case 'expediente':
+      cargarReglasPorSerie(selectedSerie.value)
       bsModalExpediente.show()
       break
   }

@@ -150,15 +150,16 @@
             <button type="button" class="btn-close" @click="cerrarModal('editar')" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
-            <div v-if="expedienteActual" class="alert alert-info border rounded p-3 mb-3">
-              <div class="fw-semibold mb-2">Información visual vinculada a la serie</div>
-              <div><strong>Serie:</strong> {{ expedienteActual.serie || 'Sin serie' }}</div>
-              <div v-if="expedienteActual.subserie"><strong>Subserie:</strong> {{ expedienteActual.subserie }}</div>
-              <div><strong>Valor documental:</strong> {{ formatearValorDocumental(expedienteActual.serie_detalle) }}</div>
-              <div><strong>Vigencia documental:</strong> {{ formatearVigenciaDocumental(expedienteActual.serie_detalle) }}</div>
-              <div><strong>Años en Archivo de Trámite:</strong> {{ formatearValorSimple(expedienteActual.serie_detalle?.plazo_at) }}</div>
-              <div><strong>Años en Archivo de Concentración:</strong> {{ formatearValorSimple(expedienteActual.serie_detalle?.plazo_ac) }}</div>
-            </div>
+            <ReglasDocumentalesPanel
+              :reglas="reglasDocumentalesEditar"
+              empty-message="No hay reglas documentales vinculadas a este expediente."
+            />
+
+            <FormSectionHeader
+              title="Datos del expediente a editar"
+              badge="Captura manual"
+              description="Modifique solo la información operativa del expediente."
+            />
 
             <form @submit.prevent="guardarCambios">
 
@@ -170,12 +171,6 @@
               <div class="mb-3">
                 <label class="form-label">Código</label>
                 <input type="text" class="form-control" v-model="expedienteActual.codigo" required>
-              </div>
-
-
-              <div class="mb-3">
-                <label class="form-label">Tiempo de Conservación (años)</label>
-                <input type="number" class="form-control" v-model.number="expedienteActual.tiempo_conservacion" min="0">
               </div>
 
               <div class="mb-3">
@@ -198,24 +193,6 @@
               <div class="mb-3">
                 <label class="form-label">Número de Caja</label>
                 <input type="number" class="form-control" v-model.number="expedienteActual.no_caja" min="0">
-              </div>
-
-              <div class="mb-3">
-                <label>Clasificacion</label>
-                <select v-model="expedienteActual.clasificacion" class="form-select">
-                  <option value="Pública">Pública</option>
-                  <option value="Confidencial">Confidencial</option>
-                  <option value="Reservada">Reservada</option>
-                </select>
-              </div>
-
-              <div class="mb-3">
-                <label>Caracter</label>
-                <select v-model="expedienteActual.caracter" class="form-select">
-                  <option value="Administrativo">Administrativo</option>
-                  <option value="Legal">Legal</option>
-                  <option value="Contable">Contable</option>
-                </select>
               </div>
 
               <div class="mb-3">
@@ -276,21 +253,6 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Fundamento legal</label>
-                <textarea class="form-control" rows="2" v-model="expedienteActual.fundamento_legal"></textarea>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label">Periodo de reserva (años)</label>
-                <input type="number" class="form-control" v-model.number="expedienteActual.periodo_reserva" min="0">
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label">Ampliación periodo de reserva (años)</label>
-                <input type="number" class="form-control" v-model.number="expedienteActual.ampliacion_periodo_reserva" min="0">
-              </div>
-
-              <div class="mb-3">
                 <label class="form-label">Rúbrica titular de la unidad</label>
                 <input type="text" class="form-control" v-model="expedienteActual.rubrica_titular_de_la_unidad">
               </div>
@@ -328,9 +290,16 @@
 <script>
 import axios from 'axios'
 import { Modal } from 'bootstrap'
+import FormSectionHeader from '../components/FormSectionHeader.vue'
+import ReglasDocumentalesPanel from '../components/ReglasDocumentalesPanel.vue'
+import { reglasDesdeSerieYInstrumento } from '../utils/reglasDocumentales.js'
 
 export default {
   name: 'ExpedientesPage',
+  components: {
+    FormSectionHeader,
+    ReglasDocumentalesPanel,
+  },
   data() {
     return {
       currentUserRoles: [],
@@ -375,6 +344,29 @@ export default {
     paginatedExpedientes() {
       const start = (this.paginaActual - 1) * this.porPagina
       return this.expedientesFiltrados.slice(start, start + this.porPagina)
+    },
+    reglasDocumentalesEditar() {
+      if (!this.expedienteActual) return null
+
+      const serie = this.expedienteActual.serie_detalle
+      if (serie) {
+        return reglasDesdeSerieYInstrumento(serie, {
+          fundamento_legal: this.expedienteActual.fundamento_legal,
+          periodo_reserva: this.expedienteActual.periodo_reserva,
+          nombre_elemento: this.expedienteActual.serie,
+        })
+      }
+
+      return {
+        serie_nombre: this.expedienteActual.serie || '',
+        vigencia_documental: this.expedienteActual.tiempo_conservacion != null ? String(this.expedienteActual.tiempo_conservacion) : '',
+        anios_archivo_tramite: this.expedienteActual.vigencia ?? '',
+        clasificacion: this.expedienteActual.clasificacion || '',
+        caracter: this.expedienteActual.caracter || '',
+        fundamento_legal: this.expedienteActual.fundamento_legal || '',
+        periodo_reserva: this.expedienteActual.periodo_reserva != null ? String(this.expedienteActual.periodo_reserva) : '',
+        valor_documental: { administrativo: false, legal: false, contable: false },
+      }
     }
   },
   watch: {
@@ -460,8 +452,21 @@ export default {
     },
 
     guardarCambios() {
+      const {
+        tiempo_conservacion,
+        vigencia,
+        clasificacion,
+        caracter,
+        fundamento_legal,
+        periodo_reserva,
+        ampliacion_periodo_reserva,
+        serie_detalle,
+        subserie_detalle,
+        ...datosOperativos
+      } = this.expedienteActual
+
       axios
-        .put(`/editarexpedientes/${this.expedienteActual.id}`, this.expedienteActual)
+        .put(`/editarexpedientes/${this.expedienteActual.id}`, datosOperativos)
         .then((response) => {
           alert('Expediente actualizado correctamente');
           this.modalEditar.hide();
