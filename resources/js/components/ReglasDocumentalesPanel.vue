@@ -54,9 +54,9 @@
       </div>
 
       <div class="regla-item">
-        <span class="regla-label">Carácter</span>
-        <span class="regla-value">{{ formatearValorSimple(reglas.caracter) }}</span>
-        <span class="regla-origen badge bg-light text-dark border">Serie</span>
+        <span class="regla-label">Carácter de la información</span>
+        <span class="regla-value">{{ valorDocumentalDesdeReglas(reglas) }}</span>
+        <span class="regla-origen badge bg-light text-dark border">Serie (mismo que valor documental)</span>
       </div>
 
       <div class="regla-item regla-item--full">

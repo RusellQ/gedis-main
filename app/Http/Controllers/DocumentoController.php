@@ -18,7 +18,10 @@ class DocumentoController extends Controller
         $document = Caratula::with('instrumentoControl.serie')->find($documentId);
 
         if ($document) {
-            return response()->json($document);
+            return response()->json(array_merge(
+                $document->toArray(),
+                ReglasDocumentalesService::reglasCaratulaParaApi($document)
+            ));
         }
 
         return response()->json(['error' => 'Documento no encontrado'], 404);
@@ -74,11 +77,14 @@ class DocumentoController extends Controller
 
         try {
             $user = Auth::user();
-            $valorDocumental = $validatedData['valor_documental'] ?? [];
 
-            $validatedData['valor_documental_administrativo'] = !empty($valorDocumental['administrativo']) ? 1 : 0;
-            $validatedData['valor_documental_legal'] = !empty($valorDocumental['legal']) ? 1 : 0;
-            $validatedData['valor_documental_contable'] = !empty($valorDocumental['contable']) ? 1 : 0;
+            if ($request->has('valor_documental')) {
+                $valorDocumental = $validatedData['valor_documental'] ?? [];
+                $validatedData['valor_documental_administrativo'] = !empty($valorDocumental['administrativo']) ? 1 : 0;
+                $validatedData['valor_documental_legal'] = !empty($valorDocumental['legal']) ? 1 : 0;
+                $validatedData['valor_documental_contable'] = !empty($valorDocumental['contable']) ? 1 : 0;
+            }
+
             unset($validatedData['valor_documental'], $validatedData['caracter_informacion']);
 
             $validatedData['id_dependencia'] = $user->id_dependencia;
@@ -92,7 +98,10 @@ class DocumentoController extends Controller
             $camposCaratula = collect($validatedData)->only((new Caratula())->getFillable())->toArray();
             $caratula = Caratula::create($camposCaratula);
 
-            ReglasDocumentalesService::aplicarReglasCaratula($caratula, $validatedData);
+            ReglasDocumentalesService::aplicarReglasCaratula(
+                $caratula,
+                ReglasDocumentalesService::filtrarReglasCaratulaDelPayload($validatedData)
+            );
             $caratula->load('instrumentoControl.serie');
 
             return response()->json(['message' => 'Documento creado con éxito', 'data' => $caratula], 201);
@@ -177,7 +186,10 @@ class DocumentoController extends Controller
             $document->fill($camposCaratula);
             $document->save();
 
-            ReglasDocumentalesService::aplicarReglasCaratula($document, $validatedData);
+            ReglasDocumentalesService::aplicarReglasCaratula(
+                $document,
+                ReglasDocumentalesService::filtrarReglasCaratulaDelPayload($validatedData)
+            );
             $document->load('instrumentoControl.serie');
 
             return response()->json(['message' => 'Documento actualizado con éxito'], 200);

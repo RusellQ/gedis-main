@@ -70,13 +70,7 @@
             <td>{{ documento.ubicacion_topografica }}</td>
             <td>{{ documento.no_legajo }}</td>
             <td>{{ documento.no_fojas }}</td>
-            <td>
-              {{ documento.valor_documental_administrativo == 1 ? 'Administrativo' : '' }}
-              {{ documento.valor_documental_legal == 1 ? (documento.valor_documental_administrativo == 1 ? ', ' : '') +
-                'Legal' : '' }}
-              {{ documento.valor_documental_contable == 1 ? ((documento.valor_documental_administrativo == 1 ||
-                documento.valor_documental_legal == 1) ? ', ' : '') + 'Contable' : '' }}
-            </td>
+            <td>{{ documento.valor_documental || formatearValorDocumentalTabla(documento) }}</td>
 
             <td>{{ documento.vigencia_documental }}</td>
             <td>{{ documento.anios_archivo_tramite }}</td>
@@ -373,18 +367,18 @@ export default {
     getAllDocuments() {
       axios.get('/documentos')
         .then(response => {
-          // Iterar sobre los documentos y procesar el campo valor_documental
-          this.documentos = response.data.map(doc => {
-            if (typeof doc.valor_documental === 'object' && doc.valor_documental !== null) {
-              // Convertir el objeto a una cadena de claves separadas por comas
-              doc.valor_documental = Object.keys(doc.valor_documental).join(", ");
-            }
-            return doc;
-          });
+          this.documentos = response.data;
         })
         .catch(error => {
           console.error('Error al obtener documentos:', error);
         });
+    },
+    formatearValorDocumentalTabla(documento) {
+      const partes = [];
+      if (documento.valor_documental_administrativo == 1) partes.push('Administrativo');
+      if (documento.valor_documental_legal == 1) partes.push('Legal');
+      if (documento.valor_documental_contable == 1) partes.push('Contable');
+      return partes.join(', ');
     },
    async getCurrentUser() {
   try {
@@ -485,6 +479,15 @@ export default {
           const valorDocumentalDisplay = (() => {
             if (enBlanco) return "";
 
+            if (documento.valor_documental) {
+              const partes = documento.valor_documental.split(',').map((p) => p.trim()).filter(Boolean);
+              if (partes.length > 1) {
+                const lastItem = partes.pop();
+                return `${partes.join(", ")} y ${lastItem}`;
+              }
+              return documento.valor_documental;
+            }
+
             let display = [];
             if (documento.valor_documental_legal) display.push("Legal");
             if (documento.valor_documental_contable) display.push("Contable");
@@ -497,6 +500,8 @@ export default {
 
             return display[0] || "";
           })();
+
+          const caracterInformacionDisplay = enBlanco ? '' : (valorDocumentalDisplay || '');
 
           // Posición inicial y tamaño de celda ajustado
           let startX = 10;
@@ -548,7 +553,7 @@ export default {
               { label: "INFORMACIÓN RESERVADA Y/O CONFIDENCIAL", colspan: 2, value: "" },
             ],
             [
-              { label: "Carácter de la Información", value: emptyValue(documento.caracter_informacion) },
+              { label: "Carácter de la Información", value: caracterInformacionDisplay },
               { label: "Fecha de clasificación", value: emptyValue(documento.fecha_clasificacion) },
             ],
             [

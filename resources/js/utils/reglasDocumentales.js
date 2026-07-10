@@ -24,11 +24,7 @@ export function clasificacionDesdeSerie(serie) {
 }
 
 export function caracterDesdeSerie(serie) {
-  if (!serie) return 'Sin información'
-  if (serie.vigencia_ad) return 'Administrativo'
-  if (serie.vigencia_le) return 'Legal'
-  if (serie.vigencia_confi) return 'Contable'
-  return 'Sin información'
+  return formatearValorDocumental(serie)
 }
 
 export function valorDocumentalDesdeReglas(reglas) {

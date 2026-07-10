@@ -26,7 +26,7 @@ class InstrumentoControlService
         $expediente = \App\Models\Expediente::where('clave', $clave)->first();
 
         if ($expediente?->id_instrumento_control) {
-            return InstrumentoControl::find($expediente->id_instrumento_control);
+            return InstrumentoControl::with('serie')->find($expediente->id_instrumento_control);
         }
 
         if ($expediente?->id_serie) {

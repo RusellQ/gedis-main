@@ -39,12 +39,14 @@ class Caratula extends Model
     ];
 
     protected $appends = [
+        'valor_documental',
         'valor_documental_administrativo',
         'valor_documental_legal',
         'valor_documental_contable',
         'vigencia_documental',
         'anios_archivo_tramite',
         'anios_archivo_concentracion',
+        'caracter_informacion',
         'fundamento_legal',
         'periodo_reserva',
     ];
@@ -75,6 +77,11 @@ class Caratula extends Model
         }
 
         return InstrumentoControlService::resolverPorExpedienteClave($this->codigo_clasificacion_archivistica);
+    }
+
+    public function getValorDocumentalAttribute()
+    {
+        return ReglasDocumentalesService::reglasCaratulaParaApi($this)['valor_documental'];
     }
 
     public function getValorDocumentalAdministrativoAttribute()
@@ -115,5 +122,10 @@ class Caratula extends Model
     public function getPeriodoReservaAttribute()
     {
         return ReglasDocumentalesService::reglasCaratulaParaApi($this)['periodo_reserva'];
+    }
+
+    public function getCaracterInformacionAttribute()
+    {
+        return ReglasDocumentalesService::reglasCaratulaParaApi($this)['caracter_informacion'];
     }
 }

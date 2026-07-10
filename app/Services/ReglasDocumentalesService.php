@@ -47,6 +47,79 @@ class ReglasDocumentalesService
         return null;
     }
 
+    public static function caracterInformacionDesdeSerie(?Serie $serie): ?string
+    {
+        return self::valorDocumentalTextoDesdeSerie($serie);
+    }
+
+    public static function valorDocumentalTextoDesdeSerie(?Serie $serie): ?string
+    {
+        if (!$serie) {
+            return null;
+        }
+
+        $valores = [];
+
+        if ($serie->vigencia_ad) {
+            $valores[] = 'Administrativo';
+        }
+        if ($serie->vigencia_le) {
+            $valores[] = 'Legal';
+        }
+        if ($serie->vigencia_confi) {
+            $valores[] = 'Contable';
+        }
+
+        return $valores ? implode(', ', $valores) : null;
+    }
+
+    public static function resolverInstrumentoParaCaratula(Caratula $caratula): ?InstrumentoControl
+    {
+        if ($caratula->relationLoaded('instrumentoControl') && $caratula->instrumentoControl) {
+            return $caratula->instrumentoControl;
+        }
+
+        if ($caratula->id_instrumento_control) {
+            $instrumento = InstrumentoControl::with('serie')->find($caratula->id_instrumento_control);
+            if ($instrumento) {
+                return $instrumento;
+            }
+        }
+
+        $instrumento = InstrumentoControlService::resolverPorExpedienteClave($caratula->codigo_clasificacion_archivistica);
+
+        if ($instrumento && !$instrumento->relationLoaded('serie')) {
+            $instrumento->load('serie');
+        }
+
+        return $instrumento;
+    }
+
+    public static function resolverSerieParaCaratula(Caratula $caratula): ?Serie
+    {
+        $instrumento = self::resolverInstrumentoParaCaratula($caratula);
+
+        if ($instrumento?->relationLoaded('serie') && $instrumento->serie) {
+            return $instrumento->serie;
+        }
+
+        if ($instrumento?->serie) {
+            return $instrumento->serie;
+        }
+
+        if ($instrumento?->id_serie) {
+            return Serie::find($instrumento->id_serie);
+        }
+
+        $expediente = Expediente::where('clave', $caratula->codigo_clasificacion_archivistica)->first();
+
+        if ($expediente?->id_serie) {
+            return Serie::find($expediente->id_serie);
+        }
+
+        return null;
+    }
+
     public static function reglasExpedienteParaApi(Expediente $expediente): array
     {
         $serie = $expediente->relationLoaded('serie')
@@ -128,25 +201,47 @@ class ReglasDocumentalesService
         }
     }
 
+    public static function filtrarReglasCaratulaDelPayload(array $data): array
+    {
+        $campos = [
+            'valor_documental',
+            'valor_documental_administrativo',
+            'valor_documental_legal',
+            'valor_documental_contable',
+            'vigencia_documental',
+            'anios_archivo_tramite',
+            'anios_archivo_concentracion',
+            'fundamento_legal',
+            'periodo_reserva',
+        ];
+
+        return array_intersect_key($data, array_flip($campos));
+    }
+
     public static function reglasCaratulaParaApi(Caratula $caratula): array
     {
-        $instrumento = $caratula->relationLoaded('instrumentoControl')
-            ? $caratula->instrumentoControl
-            : ($caratula->id_instrumento_control
-                ? InstrumentoControl::with('serie')->find($caratula->id_instrumento_control)
-                : InstrumentoControlService::resolverPorExpedienteClave($caratula->codigo_clasificacion_archivistica));
-
-        $serie = $instrumento?->serie;
+        $instrumento = self::resolverInstrumentoParaCaratula($caratula);
+        $serie = self::resolverSerieParaCaratula($caratula);
 
         return [
             'valor_documental_administrativo' => $serie?->vigencia_ad ? 1 : 0,
             'valor_documental_legal' => $serie?->vigencia_le ? 1 : 0,
             'valor_documental_contable' => $serie?->vigencia_confi ? 1 : 0,
+            'valor_documental' => self::valorDocumentalTextoDesdeSerie($serie),
             'vigencia_documental' => $serie?->plazo_ta !== null ? (string) $serie->plazo_ta : null,
             'anios_archivo_tramite' => $serie?->plazo_at,
             'anios_archivo_concentracion' => $serie?->plazo_ac,
+            'clasificacion' => self::clasificacionDesdeSerie($serie),
+            'caracter_informacion' => self::caracterInformacionDesdeSerie($serie),
             'fundamento_legal' => $instrumento?->fundamento_legal,
             'periodo_reserva' => $instrumento?->periodo_reserva,
+            'reglas_fuente' => [
+                'codigo_clasificacion_archivistica' => $caratula->codigo_clasificacion_archivistica,
+                'id_instrumento_control' => $caratula->id_instrumento_control ?? $instrumento?->id,
+                'id_serie' => $serie?->id,
+                'serie_codigo' => $serie?->codigo,
+                'serie_nombre' => $serie?->nombre,
+            ],
         ];
     }
 
@@ -186,27 +281,33 @@ class ReglasDocumentalesService
 
         $cambiosSerie = [];
 
-        if (isset($data['valor_documental_administrativo']) || isset($data['valor_documental']['administrativo'])) {
-            $cambiosSerie['vigencia_ad'] = !empty($data['valor_documental_administrativo'] ?? $data['valor_documental']['administrativo'] ?? false) ? 1 : 0;
+        if (array_key_exists('valor_documental_administrativo', $data)) {
+            $cambiosSerie['vigencia_ad'] = !empty($data['valor_documental_administrativo']) ? 1 : 0;
+        } elseif (isset($data['valor_documental']['administrativo'])) {
+            $cambiosSerie['vigencia_ad'] = !empty($data['valor_documental']['administrativo']) ? 1 : 0;
         }
 
-        if (isset($data['valor_documental_legal']) || isset($data['valor_documental']['legal'])) {
-            $cambiosSerie['vigencia_le'] = !empty($data['valor_documental_legal'] ?? $data['valor_documental']['legal'] ?? false) ? 1 : 0;
+        if (array_key_exists('valor_documental_legal', $data)) {
+            $cambiosSerie['vigencia_le'] = !empty($data['valor_documental_legal']) ? 1 : 0;
+        } elseif (isset($data['valor_documental']['legal'])) {
+            $cambiosSerie['vigencia_le'] = !empty($data['valor_documental']['legal']) ? 1 : 0;
         }
 
-        if (isset($data['valor_documental_contable']) || isset($data['valor_documental']['contable'])) {
-            $cambiosSerie['vigencia_confi'] = !empty($data['valor_documental_contable'] ?? $data['valor_documental']['contable'] ?? false) ? 1 : 0;
+        if (array_key_exists('valor_documental_contable', $data)) {
+            $cambiosSerie['vigencia_confi'] = !empty($data['valor_documental_contable']) ? 1 : 0;
+        } elseif (isset($data['valor_documental']['contable'])) {
+            $cambiosSerie['vigencia_confi'] = !empty($data['valor_documental']['contable']) ? 1 : 0;
         }
 
         if (array_key_exists('vigencia_documental', $data) && $data['vigencia_documental'] !== null && $data['vigencia_documental'] !== '') {
             $cambiosSerie['plazo_ta'] = (int) $data['vigencia_documental'];
         }
 
-        if (array_key_exists('anios_archivo_tramite', $data)) {
+        if (array_key_exists('anios_archivo_tramite', $data) && $data['anios_archivo_tramite'] !== null && $data['anios_archivo_tramite'] !== '') {
             $cambiosSerie['plazo_at'] = $data['anios_archivo_tramite'];
         }
 
-        if (array_key_exists('anios_archivo_concentracion', $data)) {
+        if (array_key_exists('anios_archivo_concentracion', $data) && $data['anios_archivo_concentracion'] !== null && $data['anios_archivo_concentracion'] !== '') {
             $cambiosSerie['plazo_ac'] = $data['anios_archivo_concentracion'];
         }
 
