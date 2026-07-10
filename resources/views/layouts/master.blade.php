@@ -104,203 +104,99 @@
             <!-- Divider -->
             <hr class="sidebar-divider">
     
-            <!--
-            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'editor','root']))
+            <!-- Sección: Expedientes -->
             <li class="nav-item">
-                <a class="nav-link" href="/capturar">
-                    <i class="fas fa-plus-circle" style="color: #6b7990;"></i> <span style="color: #848B96;">Caratula de Expediente</span></a>
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseExpedientes" aria-expanded="false" aria-controls="collapseExpedientes">
+                    <i class="fas fa-folder-open" style="color: #6b7990;"></i>
+                    <span style="color: #848B96;">Expedientes</span>
+                </a>
+                <div id="collapseExpedientes" class="collapse" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        @if(Auth::user()->hasRole(['administrador', 'editor','root']))
+                        <a class="collapse-item" href="/cargarexpedientes">Cargar expedientes</a>
+                        <a class="collapse-item" href="/caratula-v2">Caratula de Expediente</a>
+                        @endif
+                        <a class="collapse-item" href="/consultar">Consultar caratulas</a>
+                    </div>
+                </div>
             </li>
-            @endif
-            -->
 
-            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'editor','root']))
+            <!-- Sección: Archivo -->
             <li class="nav-item">
-                <a class="nav-link" href="/caratula-v2">
-                    <i class="fas fa-plus-circle" style="color: #6b7990;"></i> <span style="color: #848B96;">Caratula de Expediente</span></a>
-            </li>
-            @endif
-
-            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'lector', 'editor','root']))
-            <li class="nav-item">
-                <a class="nav-link" href="/consultar">
-                    <i class="fas fa-th-list" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">Consultar caratulas</span></a>
-            </li>
-            @endif
-
-              @if(Auth::check() && Auth::user()->hasRole(['root']))
-            <li class="nav-item">
-                <a class="nav-link" href="/indexfondos">
-                    <i class="fas fa-cubes" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">Fondos</span></a>
-
-            </li>
-            @endif
-
-
-            @if(Auth::check() && Auth::user()->hasRole(['administrador','root']))
-            <li class="nav-item">
-                <a class="nav-link" href="/fondos">
-                    <i class="fas fa-layer-group" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">Crear Fondos</span></a>
-
-            </li>
-            @endif
-
-            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'editor','root']))
-            <li class="nav-item">
-                <a class="nav-link" href="/series">
-                    <i class="fas fa-stream" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">Crear Series</span></a>
-            </li>
-            @endif
-
-
-            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'editor','root']))
-            <li class="nav-item">
-                <a class="nav-link" href="/cargarexpedientes">
-                    <i class="fas fa-upload" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">Cargar expedientes</span></a>
-
-            </li>
-            @endif
-            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'lector', 'editor','root']))
-            <li class="nav-item">
-                <a class="nav-link" href="/tramite">
-                    <i class="fas fa-spinner" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">En Tramite</span></a>
-
-            </li>
-            @endif
-
-            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'lector', 'editor','root']))
-            <li class="nav-item">
-                <a class="nav-link" href="/concentracion">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseArchivo" aria-expanded="false" aria-controls="collapseArchivo">
                     <i class="fas fa-archive" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">En Concentraciión</span></a>
-
+                    <span style="color: #848B96;">Archivo</span>
+                </a>
+                <div id="collapseArchivo" class="collapse" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <a class="collapse-item" href="/tramite">En Tramite</a>
+                        <a class="collapse-item" href="/concentracion">En Concentracion</a>
+                        <a class="collapse-item" href="/historico">En Historico</a>
+                        @if(Auth::user()->hasRole(['root']))
+                        <a class="collapse-item" href="/bajas">Bajas</a>
+                        @endif
+                    </div>
+                </div>
             </li>
-            @endif
 
-            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'lector', 'editor','root']))
+            <!-- Sección: Catálogo y Estructura -->
             <li class="nav-item">
-                <a class="nav-link" href="/historico">
-                    <i class="fas fa-landmark" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">En Historico</span></a>
-
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseCatalogo" aria-expanded="false" aria-controls="collapseCatalogo">
+                    <i class="fas fa-sitemap" style="color: #6b7990;"></i>
+                    <span style="color: #848B96;">Catalogo y Estructura</span>
+                </a>
+                <div id="collapseCatalogo" class="collapse" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        {{-- @if(Auth::user()->hasRole(['root']))
+                        <a class="collapse-item" href="/indexfondos">Fondos</a>
+                        @endif --}}
+                        @if(Auth::user()->hasRole(['administrador','root']))
+                        <a class="collapse-item" href="/fondos">Crear Expedientes</a>
+                        @endif
+                        {{-- @if(Auth::user()->hasRole(['administrador', 'editor','root']))
+                        <a class="collapse-item" href="/series">Crear Series</a>
+                        @endif --}}
+                        <a class="collapse-item" href="/cuadro">Cuadro General</a>
+                        <a class="collapse-item" href="/catalogodisposicion">Catalogo Disposicion</a>
+                        <a class="collapse-item" href="/catalogosecciones">Catalogo Secciones</a>
+                    </div>
+                </div>
             </li>
-            @endif
-            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'lector', 'editor','root']))
+
+            <!-- Sección: Reportes -->
             <li class="nav-item">
                 <a class="nav-link" href="/reportes">
                     <i class="fas fa-file-export" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">Generar reportes</span></a>
-
-            </li>
-            @endif
-              @if(Auth::check() && Auth::user()->hasRole(['administrador', 'lector', 'editor','root']))
-            <li class="nav-item">
-                <a class="nav-link" href="/cuadro">
-                    <i class="fas fa-sitemap" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">Cuadro General</span></a>
-
-            </li>
-            @endif
-
-            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'lector', 'editor','root']))
-            <li class="nav-item">
-                <a class="nav-link" href="/catalogodisposicion">
-                    <i class="fas fa-file" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">Catalogo Disposicion</span></a>
-
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/catalogosecciones">
-                    <i class="fas fa-list-alt" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">Catalogo Secciones</span></a>
-
-            </li>
-            @endif
-
-            
-
-            @if(Auth::check() && Auth::user()->hasRole(['root']))
-            <li class="nav-item">
-                <a class="nav-link" href="/dependencias">
-                    <i class="fas fa-building" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">Dependencias</span></a>
-
-            </li>
-            @endif
-            
-
-            @if(Auth::check() && Auth::user()->hasRole(['administrador','root']))
-            <li class="nav-item">
-                <a class="nav-link" href="/departamentos">
-                    <i class="fas fa-user-tie" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">Departamentos</span></a>
-
-            </li>
-            @endif
-
-            @if(Auth::check() && Auth::user()->hasRole(['root']))
-            <li class="nav-item">
-                <a class="nav-link" href="/bajas">
-                    <i class="fas fa-trash" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">Bajas</span></a>
-
-            </li>
-            @endif
-
-
-
-
-
-
-
-            <!-- 
-            @if(Auth::check() && Auth::user()->hasRole([ 'buscador']))
-            <li class="nav-item">
-                <a class="nav-link" href="/buscar">
-                    <i class="fas fa-search"></i>
-                    <span>Buscar</span></a>
-            </li>
-            @endif
-
-
-           
-
-            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'estadisticas']))
-            <li class="nav-item">
-                <a class="nav-link" href="/estadisticas">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Estadisticas</span></a>
-            </li>
-            @endif
-
-            @if(Auth::check() && Auth::user()->hasRole(['administrador', 'estadisticas']))
-            <li class="nav-item">
-                <a class="nav-link" href="/inventario">
-                    <i class="fas fa-clipboard-list"></i> <span>Inventario</span></a>
-            </li>
-            @endif
-    -->
-
-            @if(Auth::check() && Auth::user()->hasRole(['administrador','root']))
-            <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePages" aria-expanded="true" aria-controls="collapsePages">
-                    <i class="fas fa-users" style="color: #6b7990;"></i>
-                    <span style="color: #848B96;">Usuarios</span>
+                    <span style="color: #848B96;">Reportes</span>
                 </a>
-                <div id="collapsePages" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
+            </li>
+
+            <!-- Sección: Administración -->
+            @if(Auth::user()->hasRole(['administrador','root']))
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseAdministracion" aria-expanded="false" aria-controls="collapseAdministracion">
+                    <i class="fas fa-cogs" style="color: #6b7990;"></i>
+                    <span style="color: #848B96;">Administracion</span>
+                </a>
+                <div id="collapseAdministracion" class="collapse" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Acciones:</h6>
+                        @if(Auth::user()->hasRole(['root']))
+                        <a class="collapse-item" href="/dependencias">Dependencias</a>
+                        @endif
+                        <a class="collapse-item" href="/departamentos">Departamentos</a>
                         <a class="collapse-item" href="/Createuser">Crear usuario</a>
                         <a class="collapse-item" href="/list-user">Listar usuarios</a>
                     </div>
                 </div>
             </li>
             @endif
+
+
+
+
+
+
+
 
             <!-- Divider -->
             <hr class="sidebar-divider d-none d-md-block">
