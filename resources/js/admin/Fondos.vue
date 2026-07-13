@@ -1,431 +1,186 @@
 <template>
-  <div class="p-4">
-    <!-- Fondo -->
-    <div class="mb-4">
-      <label class="form-label">Fondo</label>
-      <select v-model="selectedFondo" @change="onFondoChange" class="form-select">
-        <option disabled value="">Selecciona un fondo</option>
-        <option v-for="fondo in fondos" :key="fondo.id" :value="fondo.id">{{ fondo.nombre }}</option>
-      </select>
-      <button @click="abrirModal('fondo')" class="btn btn-primary mt-2">Crear Fondo</button>
-    </div>
+  <div class="form-container">
+    <div class="caratula-background">
+      <h1>Crear Expediente</h1>
 
-    <!-- Subfondo (opcional) -->
-    <div class="mb-4" v-if="selectedFondo">
-      <div class="d-flex justify-content-between align-items-center mb-1">
-        <label class="form-label">Subfondo <span class="text-muted">(opcional)</span></label>
-        <button @click="abrirModal('subfondo')" class="btn btn-primary btn-sm">Crear Subfondo</button>
-      </div>
-      <select v-if="subfondos.length" v-model="selectedSubfondo" @change="fetchSecciones" class="form-select">
-        <option value="">Sin subfondo</option>
-        <option v-for="subfondo in subfondos" :key="subfondo.id" :value="subfondo.id">
-          {{ subfondo.nombre }}
-        </option>
-      </select>
-      <p v-else class="text-muted small">Este fondo no tiene subfondos.</p>
-    </div>
+      <div class="selector-expediente caratula-form mb-4">
+        <h5 class="selector-titulo">Ubicación en el catálogo archivístico</h5>
+        <p class="selector-ayuda text-muted">
+          Seleccione la jerarquía donde se registrará el expediente: fondo, sección, serie y, si aplica, subfondo y subserie.
+        </p>
 
-
-    <!-- Sección -->
-    <div class="mb-4" v-if="selectedFondo">
-      <div class="d-flex justify-content-between align-items-center mb-1">
-        <label class="form-label">Sección</label>
-        <button @click="abrirModal('seccion')" class="btn btn-primary btn-sm">Crear Sección</button>
-      </div>
-      <select v-if="secciones.length" v-model="selectedSeccion" @change="fetchSeries" class="form-select">
-        <option disabled value="">Selecciona una sección</option>
-        <option v-for="seccion in secciones" :key="seccion.id" :value="seccion.id">{{ seccion.nombre }}</option>
-      </select>
-      <p v-else class="text-muted small">Este fondo no tiene secciones.</p>
-    </div>
-
-    <!-- Serie -->
-    <div class="mb-4" v-if="selectedSeccion">
-      <div class="d-flex justify-content-between align-items-center mb-1">
-        <label class="form-label">Serie</label>
-        <button @click="abrirModal('serie')" class="btn btn-primary btn-sm">Crear Serie</button>
-      </div>
-      <select v-if="series.length" v-model="selectedSerie" @change="handleSerieChange" class="form-select">
-        <option disabled value="">Selecciona una serie</option>
-        <option v-for="serie in series" :key="serie.id" :value="serie.id">{{ serie.nombre }}</option>
-      </select>
-      <p v-else class="text-muted small">Esta sección no tiene series.</p>
-    </div>
-
-    <!-- SubSerie (opcional) -->
-    <div class="mb-4" v-if="selectedSeccion">
-      <div class="d-flex justify-content-between align-items-center mb-1">
-        <label class="form-label">Subserie <span class="text-muted">(opcional)</span></label>
-        <button @click="abrirModal('subserie')" class="btn btn-primary btn-sm">Crear Subserie</button>
-      </div>
-      <select v-if="subseries.length" v-model="selectedSubserie" @change="fetchExpedientes" class="form-select">
-        <option value="">Sin subfondo</option>
-        <option v-for="subserie in subseries" :key="subserie.id" :value="subserie.id">
-          {{ subserie.nombre }}
-        </option>
-      </select>
-      <p v-else class="text-muted small">Este fondo no tiene subseries.</p>
-    </div>
-
-    <!-- Expediente -->
-    <div class="mb-4" v-if="selectedSerie">
-      <div class="d-flex justify-content-between align-items-center mb-1">
-        <label class="form-label">Expediente</label>
-        <button @click="abrirModal('expediente')" class="btn btn-primary btn-sm">Crear Expediente</button>
-      </div>
-      <select v-if="expedientes.length" v-model="selectedExpediente" class="form-select">
-        <option disabled value="">Selecciona un expediente</option>
-        <option v-for="expediente in expedientes" :key="expediente.id" :value="expediente.id">{{ expediente.nombre }}
-        </option>
-      </select>
-      <p v-else class="text-muted small">Esta serie no tiene expedientes.</p>
-    </div>
-
-    <!-- Modales Bootstrap -->
-
-    <!-- Modal Fondo -->
-    <div ref="modalFondo" class="modal fade" tabindex="-1" aria-labelledby="modalFondoLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 id="modalFondoLabel" class="modal-title">Crear Fondo</h5>
-            <button type="button" class="btn-close" @click="cerrarModal('fondo')" aria-label="Cerrar"></button>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label>Fondo</label>
+            <select v-model="selectedFondo" @change="onFondoChange" class="form-control">
+              <option disabled value="">Selecciona un fondo</option>
+              <option v-for="fondo in fondos" :key="fondo.id" :value="fondo.id">{{ fondo.nombre }}</option>
+            </select>
           </div>
-          <div class="modal-body">
-            <input v-model="nuevoFondo.nombre" placeholder="Nombre del fondo" class="form-control mb-2" />
-            <input v-model="nuevoFondo.codigo" placeholder="Código del fondo" class="form-control mb-2" />
-            <textarea v-model="nuevoFondo.descripcion" placeholder="Descripción" class="form-control mb-2"></textarea>
+
+          <div class="col-md-4" v-if="selectedFondo">
+            <label>Subfondo (opcional)</label>
+            <select v-model="selectedSubfondo" @change="fetchSecciones" class="form-control">
+              <option value="">Sin subfondo</option>
+              <option v-for="subfondo in subfondos" :key="subfondo.id" :value="subfondo.id">
+                {{ subfondo.nombre }}
+              </option>
+            </select>
           </div>
-          <div class="modal-footer">
-            <button @click="crearFondo" type="button" class="btn btn-success">
-              Guardar
-            </button>
-            <button @click="cerrarModal('fondo')" type="button" class="btn btn-secondary">
-              Cancelar
-            </button>
+
+          <div class="col-md-4" v-if="selectedFondo">
+            <label>Sección</label>
+            <select v-model="selectedSeccion" @change="fetchSeries" class="form-control">
+              <option disabled value="">Selecciona una sección</option>
+              <option v-for="seccion in secciones" :key="seccion.id" :value="seccion.id">{{ seccion.nombre }}</option>
+            </select>
+            <p v-if="!secciones.length" class="text-muted small mt-1">Este fondo no tiene secciones.</p>
+          </div>
+
+          <div class="col-md-4" v-if="selectedSeccion">
+            <label>Serie</label>
+            <select v-model="selectedSerie" @change="handleSerieChange" class="form-control">
+              <option disabled value="">Selecciona una serie</option>
+              <option v-for="serie in series" :key="serie.id" :value="serie.id">{{ serie.nombre }}</option>
+            </select>
+            <p v-if="!series.length" class="text-muted small mt-1">Esta sección no tiene series.</p>
+          </div>
+
+          <div class="col-md-4" v-if="selectedSerie">
+            <label>Subserie (opcional)</label>
+            <select v-model="selectedSubserie" class="form-control">
+              <option value="">Sin subserie</option>
+              <option v-for="subserie in subseries" :key="subserie.id" :value="subserie.id">
+                {{ subserie.nombre }}
+              </option>
+            </select>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Modal Subfondo -->
-    <div ref="modalSubfondo" class="modal fade" tabindex="-1" aria-labelledby="modalSubfondoLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 id="modalSubfondoLabel" class="modal-title">Crear Subfondo</h5>
-            <button type="button" class="btn-close" @click="cerrarModal('subfondo')" aria-label="Cerrar"></button>
+      <form @submit.prevent="crearExpediente" class="caratula-form">
+        <ReglasDocumentalesPanel
+          :reglas="reglasDocumentales"
+          :loading="cargandoReglas"
+          empty-message="Seleccione una serie en el catálogo para ver las reglas documentales vinculadas."
+        />
+
+        <FormSectionHeader
+          title="Datos del expediente a capturar"
+          badge="Captura manual"
+          description="Complete la información operativa del expediente. Las reglas CADIDO se aplican automáticamente desde el catálogo."
+        />
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label>Nombre del expediente</label>
+            <input v-model="nuevoExpediente.nombre" class="form-control" required />
           </div>
-          <div class="modal-body">
-            <input v-model="nuevoSubfondo.nombre" placeholder="Nombre del subfondo" class="form-control mb-2" />
-            <input v-model="nuevoSubfondo.codigo" placeholder="Código del subfondo" class="form-control mb-2" />
-            <textarea v-model="nuevoSubfondo.descripcion" placeholder="Descripción"
-              class="form-control mb-2"></textarea>
+          <div class="col-md-6">
+            <label>Código del expediente</label>
+            <input v-model="nuevoExpediente.codigo" class="form-control" required />
           </div>
-          <div class="modal-footer">
-            <button @click="crearSubfondo" type="button" class="btn btn-success">
-              Guardar
-            </button>
-            <button @click="cerrarModal('subfondo')" type="button" class="btn btn-secondary">
-              Cancelar
-            </button>
+
+          <div class="col-md-6">
+            <label>Estado</label>
+            <select v-model="nuevoExpediente.estado" class="form-control">
+              <option value="en_tramite">En trámite</option>
+              <option value="en_concentracion">En concentración</option>
+              <option value="en_historico">En histórico</option>
+            </select>
           </div>
-        </div>
-      </div>
-    </div>
 
-
-
-    <!-- Modal Sección -->
-    <div ref="modalSeccion" class="modal fade" tabindex="-1" aria-labelledby="modalSeccionLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 id="modalSeccionLabel" class="modal-title">Crear Sección</h5>
-            <button type="button" class="btn-close" @click="cerrarModal('seccion')" aria-label="Cerrar"></button>
+          <div class="col-md-6">
+            <label>Fecha de captura</label>
+            <input type="date" v-model="nuevoExpediente.fecha_apertura" class="form-control" disabled />
           </div>
-          <div class="modal-body">
-            <input v-model="nuevaSeccion.nombre" placeholder="Nombre de la sección" class="form-control mb-2" />
-            <input v-model="nuevaSeccion.codigo" placeholder="Código de la sección" class="form-control mb-2" />
-            <textarea v-model="nuevaSeccion.descripcion" placeholder="Descripción" class="form-control mb-2"></textarea>
+
+          <div class="col-md-6">
+            <label>Fecha de creación</label>
+            <input type="date" v-model="nuevoExpediente.fecha_creacion" class="form-control" />
           </div>
-          <div class="modal-footer">
-            <button @click="crearSeccion" type="button" class="btn btn-success">
-              Guardar
-            </button>
-            <button @click="cerrarModal('seccion')" type="button" class="btn btn-secondary">
-              Cancelar
-            </button>
+
+          <div class="col-md-6">
+            <label>Fecha de cierre</label>
+            <input type="date" v-model="nuevoExpediente.fecha_cierre" class="form-control" />
           </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Modal Serie -->
-    <div ref="modalSerie" class="modal fade" tabindex="-1" aria-labelledby="modalSerieLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 id="modalSerieLabel" class="modal-title">Crear Serie</h5>
-            <button type="button" class="btn-close" @click="cerrarModal('serie')" aria-label="Cerrar"></button>
+          <div class="col-md-4">
+            <label>Número de legajos</label>
+            <input type="number" v-model="nuevoExpediente.no_legajos" class="form-control" />
           </div>
-          <div class="modal-body">
-            <div class="row g-3">
 
-              <!-- Datos básicos -->
-              <div class="col-md-6">
-                <label>Nombre de la serie</label>
-                <input v-model="nuevaSerie.nombre" class="form-control" placeholder="Nombre de la serie" />
-              </div>
-              <div class="col-md-6">
-                <label>Código de la serie</label>
-                <input v-model="nuevaSerie.codigo" class="form-control" placeholder="Código" />
-              </div>
-              <div class="col-12">
-                <label>Descripción</label>
-                <textarea v-model="nuevaSerie.descripcion" class="form-control" rows="2"></textarea>
-              </div>
-
-              <!-- Vigencia Documental -->
-              <div class="col-12">
-                <label class="fw-semibold">Vigencia Documental</label>
-                <div class="d-flex gap-4 mt-1">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="vigencia_ad" v-model="nuevaSerie.vigencia_ad" />
-                    <label class="form-check-label" for="vigencia_ad">Administrativo</label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="vigencia_le" v-model="nuevaSerie.vigencia_le" />
-                    <label class="form-check-label" for="vigencia_le">Legal</label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="vigencia_confi"
-                      v-model="nuevaSerie.vigencia_confi" />
-                    <label class="form-check-label" for="vigencia_confi">Confidencial</label>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Plazos de Conservación -->
-              <div class="col-md-4">
-                <label>Plazo Archivo Trámite (años)</label>
-                <input type="number" v-model="nuevaSerie.plazo_at" class="form-control" min="0" />
-              </div>
-              <div class="col-md-4">
-                <label>Plazo Archivo Concentración (años)</label>
-                <input type="number" v-model="nuevaSerie.plazo_ac" class="form-control" min="0" />
-              </div>
-              <div class="col-md-4">
-                <label>Total de Años</label>
-                <input type="number" v-model="nuevaSerie.plazo_ta" class="form-control" min="0" />
-              </div>
-
-              <!-- Técnicas de Selección -->
-              <div class="col-12">
-                <label class="fw-semibold">Técnicas de Selección</label>
-                <div class="d-flex gap-4 mt-1">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="tecnica_eliminacion"
-                      v-model="nuevaSerie.tecnica_eliminacion" />
-                    <label class="form-check-label" for="tecnica_eliminacion">Eliminación</label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="tecnica_conservacion"
-                      v-model="nuevaSerie.tecnica_conservacion" />
-                    <label class="form-check-label" for="tecnica_conservacion">Conservación</label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="tecnica_muestreo"
-                      v-model="nuevaSerie.tecnica_muestreo" />
-                    <label class="form-check-label" for="tecnica_muestreo">Muestreo</label>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Clasificación de Información -->
-              <div class="col-md-6">
-                <label>Clasificación Reservada</label>
-                <input v-model="nuevaSerie.clasificacion_r" class="form-control" placeholder="Ej. 3 años" />
-              </div>
-              <div class="col-md-6">
-                <label>Clasificación Confidencial</label>
-                <input v-model="nuevaSerie.clasificacion_c" class="form-control" placeholder="Ej. 5 años" />
-              </div>
-
-              <!-- Observaciones -->
-              <div class="col-12">
-                <label>Observaciones</label>
-                <textarea v-model="nuevaSerie.observaciones" class="form-control" rows="2"></textarea>
-              </div>
-
-            </div>
+          <div class="col-md-4">
+            <label>Número de hojas</label>
+            <input type="number" v-model="nuevoExpediente.no_hojas" class="form-control" />
           </div>
-          <div class="modal-footer">
-            <button @click="crearSerie" type="button" class="btn btn-success">Guardar</button>
-            <button @click="cerrarModal('serie')" type="button" class="btn btn-secondary">Cancelar</button>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Modal Sub Serie -->
-    <div ref="modalSubserie" class="modal fade" tabindex="-1" aria-labelledby="modalSubserieLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 id="modalSubserieLabel" class="modal-title">Crear SubSerie</h5>
-            <button type="button" class="btn-close" @click="cerrarModal('subserie')" aria-label="Cerrar"></button>
+          <div class="col-md-4">
+            <label>Número de caja</label>
+            <input type="number" v-model="nuevoExpediente.no_caja" class="form-control" />
           </div>
-          <div class="modal-body">
-            <input v-model="nuevaSubserie.nombre" placeholder="Nombre de la Subserie" class="form-control mb-2" />
-            <input v-model="nuevaSubserie.codigo" placeholder="Código de la Subserie" class="form-control mb-2" />
-            <textarea v-model="nuevaSubserie.descripcion" placeholder="Descripción"
-              class="form-control mb-2"></textarea>
-          </div>
-          <div class="modal-footer">
-            <button @click="crearSubserie" type="button" class="btn btn-success">
-              Guardar
-            </button>
-            <button @click="cerrarModal('subserie')" type="button" class="btn btn-secondary">
-              Cancelar
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
 
-
-    <!-- Modal Expediente -->
-    <div ref="modalExpediente" class="modal fade" tabindex="-1" aria-labelledby="modalExpedienteLabel"
-      aria-hidden="true">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 id="modalExpedienteLabel" class="modal-title">Crear Expediente</h5>
-            <button type="button" class="btn-close" @click="cerrarModal('expediente')" aria-label="Cerrar"></button>
-          </div>
-          <div class="modal-body">
-            <ReglasDocumentalesPanel
-              :reglas="reglasDocumentales"
-              :loading="cargandoReglas"
-              empty-message="Seleccione una serie en el catálogo para ver las reglas documentales vinculadas."
+          <div class="col-md-6">
+            <label for="ubicacion_topografica">Ubicación Topográfica</label>
+            <input
+              v-model="nuevoExpediente.ubicacion_topografica"
+              type="text"
+              id="ubicacion_topografica"
+              class="form-control"
+              placeholder="Escribe la ubicación topográfica"
             />
-
-            <FormSectionHeader
-              title="Datos del expediente a capturar"
-              badge="Captura manual"
-              description="Complete la información operativa del expediente. Las reglas CADIDO se aplican automáticamente desde el catálogo."
-            />
-
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label>Nombre del expediente</label>
-                <input v-model="nuevoExpediente.nombre" class="form-control" />
-              </div>
-              <div class="col-md-6">
-                <label>Código del expediente</label>
-                <input v-model="nuevoExpediente.codigo" class="form-control" />
-              </div>
-
-              <div class="col-md-6">
-                <label>Estado</label>
-                <select v-model="nuevoExpediente.estado" class="form-select">
-                  <option value="en_tramite">En trámite</option>
-                  <option value="en_concentracion">En concentración</option>
-                  <option value="en_historico">En histórico</option>
-                </select>
-              </div>
-
-              <div class="col-md-6">
-                <label>Fecha de captura</label>
-                <input type="date" v-model="nuevoExpediente.fecha_apertura" class="form-control" disabled />
-              </div>
-
-              <div class="col-md-6">
-                <label>Fecha de creación</label>
-                <input type="date" v-model="nuevoExpediente.fecha_creacion" class="form-control" />
-              </div>
-
-
-              <div class="col-md-6">
-                <label>Fecha de cierre</label>
-                <input type="date" v-model="nuevoExpediente.fecha_cierre" class="form-control" />
-              </div>
-
-              <div class="col-md-4">
-                <label>Número de legajos</label>
-                <input type="number" v-model="nuevoExpediente.no_legajos" class="form-control" />
-              </div>
-
-              <div class="col-md-4">
-                <label>Número de hojas</label>
-                <input type="number" v-model="nuevoExpediente.no_hojas" class="form-control" />
-              </div>
-
-              <div class="col-md-4">
-                <label>Número de caja</label>
-                <input type="number" v-model="nuevoExpediente.no_caja" class="form-control" />
-              </div>
-
-              <div class="col-md-6">
-                <label for="ubicacion_topografica">Ubicación Topográfica</label>
-                <input v-model="nuevoExpediente.ubicacion_topografica" type="text" id="ubicacion_topografica"
-                  class="form-control" placeholder="Escribe la ubicación topográfica">
-              </div>
-
-              <div class="col-md-6">
-                <label>Preservación</label>
-                <select v-model="nuevoExpediente.preservacion" class="form-select">
-                  <option value="Si">Si</option>
-                  <option value="No">No</option>
-                </select>
-              </div>
-              <div class="col-12">
-                <label>Observaciones</label>
-                <input v-model="nuevoExpediente.observacion" class="form-control" />
-              </div>
-
-              <div class="col-md-6">
-                <label>Información reservada y/o confidencial</label>
-                <input v-model="nuevoExpediente.informacion_reservada_y_o_confidencial" class="form-control" />
-              </div>
-
-              <div class="col-md-6">
-                <label>Carácter de la información</label>
-                <input v-model="nuevoExpediente.caracter_de_la_informacion" class="form-control" />
-              </div>
-
-              <div class="col-md-6">
-                <label>Fecha de clasificación</label>
-                <input type="date" v-model="nuevoExpediente.fecha_clasificacion" class="form-control" />
-              </div>
-
-              <div class="col-md-6">
-                <label>Rúbrica titular de la unidad</label>
-                <input v-model="nuevoExpediente.rubrica_titular_de_la_unidad" class="form-control" />
-              </div>
-
-              <div class="col-md-6">
-                <label>Fecha de desclasificación</label>
-                <input type="date" v-model="nuevoExpediente.fecha_desclasificacion" class="form-control" />
-              </div>
-            </div>
           </div>
-          <div class="modal-footer">
-            <button @click="crearExpediente" type="button" class="btn btn-success">Guardar</button>
-            <button @click="cerrarModal('expediente')" type="button" class="btn btn-secondary">Cancelar</button>
+
+          <div class="col-md-6">
+            <label>Preservación</label>
+            <select v-model="nuevoExpediente.preservacion" class="form-control">
+              <option value="Si">Si</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+
+          <div class="col-12">
+            <label>Observaciones</label>
+            <input v-model="nuevoExpediente.observacion" class="form-control" />
+          </div>
+
+          <div class="col-md-6">
+            <label>Información reservada y/o confidencial</label>
+            <input v-model="nuevoExpediente.informacion_reservada_y_o_confidencial" class="form-control" />
+          </div>
+
+          <div class="col-md-6">
+            <label>Carácter de la información</label>
+            <input v-model="nuevoExpediente.caracter_de_la_informacion" class="form-control" />
+          </div>
+
+          <div class="col-md-6">
+            <label>Fecha de clasificación</label>
+            <input type="date" v-model="nuevoExpediente.fecha_clasificacion" class="form-control" />
+          </div>
+
+          <div class="col-md-6">
+            <label>Rúbrica titular de la unidad</label>
+            <input v-model="nuevoExpediente.rubrica_titular_de_la_unidad" class="form-control" />
+          </div>
+
+          <div class="col-md-6">
+            <label>Fecha de desclasificación</label>
+            <input type="date" v-model="nuevoExpediente.fecha_desclasificacion" class="form-control" />
           </div>
         </div>
-      </div>
-    </div>
 
+        <button type="submit" class="btn btn-success" :disabled="!selectedSerie">
+          Guardar expediente
+        </button>
+      </form>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { Modal } from 'bootstrap'
 import FormSectionHeader from '../components/FormSectionHeader.vue'
 import ReglasDocumentalesPanel from '../components/ReglasDocumentalesPanel.vue'
 
@@ -434,53 +189,25 @@ const subfondos = ref([])
 const secciones = ref([])
 const series = ref([])
 const subseries = ref([])
-const expedientes = ref([])
 
 const selectedFondo = ref('')
 const selectedSubfondo = ref('')
 const selectedSeccion = ref('')
 const selectedSerie = ref('')
 const selectedSubserie = ref('')
-const selectedExpediente = ref('')
 const reglasDocumentales = ref(null)
 const cargandoReglas = ref(false)
 
-const nuevoFondo = ref({ nombre: '', codigo: '', descripcion: '' })
-const nuevoSubfondo = ref({ nombre: '', codigo: '', descripcion: '' })
-const nuevaSeccion = ref({ nombre: '', codigo: '', descripcion: '' })
-const nuevaSerie = ref({
-  nombre: '',
-  codigo: '',
-  descripcion: '',
-  // Vigencia Documental
-  vigencia_ad: false, // valor documental ad
-  vigencia_le: false, // valor documental le
-  vigencia_confi: false, // valor documental confidencial
-  // Plazos
-  plazo_at: '',
-  plazo_ac: '',
-  plazo_ta: '',
-  // Técnicas
-  tecnica_eliminacion: false,
-  tecnica_conservacion: false,
-  tecnica_muestreo: false,
-  // Clasificación
-  clasificacion_r: '',
-  clasificacion_c: '',
-  // Observaciones
-  observaciones: ''
-})
-const nuevaSubserie = ref({ nombre: '', codigo: '', descripcion: '' })
 const nuevoExpediente = ref({
   nombre: '',
   codigo: '',
-  estado: 'en_tramite',           // valor por defecto según la tabla
-  fecha_apertura: '',             // formato esperado: 'YYYY-MM-DD'
-  fecha_cierre: '',               // formato esperado: 'YYYY-MM-DD'
+  estado: 'en_tramite',
+  fecha_apertura: '',
+  fecha_cierre: '',
   fecha_creacion: '',
   no_legajos: '',
-  no_hojas: '',                // Número de hojas
-  no_caja: '',                 // Número de caja
+  no_hojas: '',
+  no_caja: '',
   ubicacion_topografica: 'Dirección General',
   preservacion: 'Si',
   observacion: '',
@@ -488,23 +215,30 @@ const nuevoExpediente = ref({
   caracter_de_la_informacion: '',
   fecha_clasificacion: '',
   rubrica_titular_de_la_unidad: '',
-  fecha_desclasificacion: ''
+  fecha_desclasificacion: '',
 })
 
-const modalFondo = ref(null)
-const modalSeccion = ref(null)
-const modalSerie = ref(null)
-const modalSubserie = ref(null)
-const modalExpediente = ref(null)
-const modalSubfondo = ref(null)
-
-// Instancias de Bootstrap Modal
-let bsModalFondo = null
-let bsModalSeccion = null
-let bsModalSerie = null
-let bsModalSubserie = null
-let bsModalExpediente = null
-let bsModalSubfondo = null
+const resetExpedienteForm = () => {
+  nuevoExpediente.value = {
+    nombre: '',
+    codigo: '',
+    estado: 'en_tramite',
+    fecha_apertura: new Date().toISOString().split('T')[0],
+    fecha_cierre: '',
+    fecha_creacion: '',
+    no_legajos: '',
+    no_hojas: '',
+    no_caja: '',
+    ubicacion_topografica: 'Dirección General',
+    preservacion: 'Si',
+    observacion: '',
+    informacion_reservada_y_o_confidencial: '',
+    caracter_de_la_informacion: '',
+    fecha_clasificacion: '',
+    rubrica_titular_de_la_unidad: '',
+    fecha_desclasificacion: '',
+  }
+}
 
 const cargarReglasPorSerie = async (serieId) => {
   if (!serieId) {
@@ -524,18 +258,16 @@ const cargarReglasPorSerie = async (serieId) => {
 }
 
 const onFondoChange = async () => {
-  selectedSubfondo.value = '' // Limpia subfondo
-  await fetchSubfondos()      // Carga subfondos del fondo seleccionado
-  await fetchSecciones()      // Carga secciones del fondo si no hay subfondo
+  selectedSubfondo.value = ''
+  await fetchSubfondos()
+  await fetchSecciones()
 }
 
 const handleSerieChange = async () => {
+  selectedSubserie.value = ''
   await fetchSubseries()
-  await fetchExpedientes()
   await cargarReglasPorSerie(selectedSerie.value)
 }
-
-
 
 const fetchFondos = async () => {
   const res = await axios.get('/mostrarfondos')
@@ -551,25 +283,24 @@ const fetchSubfondos = async () => {
   secciones.value = []
   series.value = []
   subseries.value = []
-  expedientes.value = []
+  reglasDocumentales.value = null
 
   if (!selectedFondo.value) return
   const res = await axios.get(`/fondos/${selectedFondo.value}/subfondos`)
   subfondos.value = res.data
-  /* Si no hay subfondos, cargamos secciones directas al fondo           */
   if (!subfondos.value.length) await fetchSecciones()
 }
-
 
 const fetchSecciones = async () => {
   selectedSeccion.value = ''
   selectedSerie.value = ''
   selectedSubserie.value = ''
-  selectedExpediente.value = ''
   secciones.value = []
   series.value = []
   subseries.value = []
-  expedientes.value = []
+  reglasDocumentales.value = null
+
+  if (!selectedFondo.value) return
 
   const url = selectedSubfondo.value
     ? `/subfondos/${selectedSubfondo.value}/secciones`
@@ -578,234 +309,106 @@ const fetchSecciones = async () => {
   secciones.value = res.data
 }
 
-
 const fetchSeries = async () => {
   selectedSerie.value = ''
-  selectedExpediente.value = ''
+  selectedSubserie.value = ''
   series.value = []
-  expedientes.value = []
+  subseries.value = []
+  reglasDocumentales.value = null
+
   if (!selectedSeccion.value) return
   const res = await axios.get(`/secciones/${selectedSeccion.value}/series`)
   series.value = res.data
 }
 
-// 3. Subseries de la serie elegida
 const fetchSubseries = async () => {
   selectedSubserie.value = ''
   subseries.value = []
   if (!selectedSerie.value) return
   const res = await axios.get(`/series/${selectedSerie.value}/subseries`)
-  console.log('Subseries cargadas:', res.data.data) // 👈 esto te dirá si llegaron
-  subseries.value = res.data.data // 👈 ¡IMPORTANTE!
-}
-
-// Actualiza expedientes, ahora considerando la subserie opcional
-const fetchExpedientes = async () => {
-  selectedExpediente.value = ''
-  expedientes.value = []
-  if (!selectedSerie.value) return
-  const url = selectedSubserie.value
-    ? `/subseries/${selectedSubserie.value}/expedientes`
-    : `/series/${selectedSerie.value}/expedientes`
-  const res = await axios.get(url)
-  expedientes.value = res.data
-}
-
-const crearFondo = async () => {
-  try {
-    await axios.post('/guardarfondos', nuevoFondo.value)
-    bsModalFondo.hide()  // Cierra el modal correctamente
-    nuevoFondo.value = { nombre: '', codigo: '', descripcion: '' }
-    fetchFondos()
-  } catch (e) {
-    console.error('Error al crear el fondo', e)
-  }
-}
-
-const crearSubfondo = async () => {
-  try {
-    await axios.post('/guardarsubfondo', {
-      ...nuevoSubfondo.value,
-      id_fondo: selectedFondo.value
-    })
-    bsModalSubfondo.hide()
-    nuevoSubfondo.value = { nombre: '', codigo: '', descripcion: '' }
-    fetchSubfondos()
-  } catch (e) {
-    console.error('Error al crear el subfondo', e)
-  }
-}
-
-
-const crearSeccion = async () => {
-  try {
-    // Asignar implícitamente el id_subfondo seleccionado
-    if (selectedSubfondo.value) {
-      nuevaSeccion.value.id_subfondo = selectedSubfondo.value;
-    } else {
-      nuevaSeccion.value.id_subfondo = null;
-    }
-
-    await axios.post(`/fondos/${selectedFondo.value}/secciones`, nuevaSeccion.value);
-    bsModalSeccion.hide();
-    nuevaSeccion.value = { nombre: '', codigo: '', descripcion: '' };
-    fetchSecciones();
-  } catch (e) {
-    console.error('Error al crear la sección', e);
-  }
-}
-
-const crearSerie = async () => {
-  try {
-    await axios.post('/guardarserie', {
-      ...nuevaSerie.value,
-      id_seccion: selectedSeccion.value
-    })
-    bsModalSerie.hide()
-    nuevaSerie.value = {
-      nombre: '', codigo: '', descripcion: '',
-      vigencia_ad: false, vigencia_le: false, vigencia_confi: false,
-      plazo_at: '', plazo_ac: '', plazo_ta: '',
-      tecnica_eliminacion: false, tecnica_conservacion: false, tecnica_muestreo: false,
-      clasificacion_r: '', clasificacion_c: '',
-      observaciones: ''
-    }
-    fetchSeries()
-  } catch (e) {
-    console.error('Error al crear la serie', e)
-  }
-}
-
-
-const crearSubserie = async () => {
-  try {
-    await axios.post('/guardarSubserie', {
-      ...nuevaSubserie.value,
-      id_serie: selectedSerie.value
-    })
-    bsModalSubserie.hide()
-    nuevaSubserie.value = { nombre: '', codigo: '', descripcion: '' }
-    fetchSubseries()
-  } catch (e) {
-    console.error('Error al crear la subserie', e)
-  }
+  subseries.value = res.data.data
 }
 
 const crearExpediente = async () => {
+  if (!selectedSerie.value) {
+    alert('Seleccione una serie en el catálogo antes de guardar el expediente.')
+    return
+  }
+
   try {
-    const datosAEnviar = {
+    await axios.post('/guardarexpediente', {
       ...nuevoExpediente.value,
       id_serie: selectedSerie.value,
       id_subserie: selectedSubserie.value || null,
-    }
+    })
 
-    await axios.post('/guardarexpediente', datosAEnviar)
-
-    bsModalExpediente.hide()
-
-    // Reiniciar todos los campos del formulario
-    nuevoExpediente.value = {
-      nombre: '',
-      codigo: '',
-      estado: 'en_tramite',
-      fecha_apertura: null,
-      fecha_cierre: null,
-      fecha_creacion: null,
-      no_legajos: '',
-      no_hojas: '',
-      no_caja: '',
-      ubicacion_topografica: '',
-      preservacion: '',
-      observacion: '',
-      informacion_reservada_y_o_confidencial: '',
-      caracter_de_la_informacion: '',
-      fecha_clasificacion: '',
-      rubrica_titular_de_la_unidad: '',
-      fecha_desclasificacion: ''
-    }
-
-    selectedSerie.value = null
-
-    fetchExpedientes()
+    alert('Expediente creado correctamente.')
+    resetExpedienteForm()
   } catch (e) {
     console.error('Error al crear el expediente:', e?.response?.data || e.message)
     alert('Hubo un error al guardar el expediente. Verifica los datos e intenta nuevamente.')
   }
 }
 
-
-
-
-// Funciones para abrir cada modal
-const abrirModal = (tipo) => {
-  switch (tipo) {
-    case 'fondo':
-      bsModalFondo.show()
-      break
-    case 'subfondo':
-      bsModalSubfondo.show()
-      break
-    case 'seccion':
-      bsModalSeccion.show()
-      break
-    case 'serie':
-      bsModalSerie.show()
-      break
-    case 'subserie':
-      bsModalSubserie.show()
-      break
-    case 'expediente':
-      cargarReglasPorSerie(selectedSerie.value)
-      bsModalExpediente.show()
-      break
-  }
-}
-
-// Funciones para cerrar cada modal
-const cerrarModal = (tipo) => {
-  switch (tipo) {
-    case 'fondo':
-      bsModalFondo.hide()
-      break
-    case 'subfondo':
-      bsModalSubfondo.hide()
-      break
-    case 'seccion':
-      bsModalSeccion.hide()
-      break
-    case 'serie':
-      bsModalSerie.hide()
-      break
-    case 'subserie':
-      bsModalSubserie.hide()
-      break
-    case 'expediente':
-      bsModalExpediente.hide()
-      break
-  }
-}
-
-
 onMounted(() => {
-  if (modalFondo.value) bsModalFondo = new Modal(modalFondo.value)
-  if (modalSubfondo.value) bsModalSubfondo = new Modal(modalSubfondo.value)
-  if (modalSeccion.value) bsModalSeccion = new Modal(modalSeccion.value)
-  if (modalSerie.value) bsModalSerie = new Modal(modalSerie.value)
-  if (modalSubserie.value) bsModalSubserie = new Modal(modalSubserie.value)
-  if (modalExpediente.value) bsModalExpediente = new Modal(modalExpediente.value)
-
-
   fetchFondos()
-
-  const hoy = new Date().toISOString().split('T')[0]
-  nuevoExpediente.value.fecha_apertura = hoy
+  resetExpedienteForm()
 })
 </script>
 
 <style scoped>
-select,
-input,
-textarea {
-  border-radius: 0.375rem;
+.form-container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.caratula-background {
+  background-size: cover;
+  background-position: center;
+  padding: 40px;
+  position: relative;
+  color: #000;
+}
+
+h1 {
+  color: #000;
+  text-align: center;
+  font-size: 2em;
+  margin-bottom: 30px;
+}
+
+.caratula-form {
+  background: rgba(255, 255, 255, 0.7);
+  padding: 40px;
+  border-radius: 8px;
+  max-width: 8000px;
+  margin: 0 auto;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.selector-expediente {
+  border: 1px dashed #6969f4;
+}
+
+.selector-titulo {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.selector-ayuda {
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px;
+  margin-top: 8px;
+  border-radius: 4px;
+}
+
+.btn {
+  margin-top: 20px;
 }
 </style>
