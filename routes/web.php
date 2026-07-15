@@ -106,6 +106,14 @@ Route::get('/dependencias', function () {
     return view('administrativas.dependencias');
 });
 
+Route::get('/catalogo-clasificacion', function () {
+    if (!auth()->check() || !auth()->user()->hasRole('root')) {
+        abort(403, 'Acceso restringido a usuarios con rol root.');
+    }
+
+    return view('administrativas.admin-catalogo');
+})->middleware('auth');
+
 Route::get('/departamentos', function () {
     return view('administrativas.departamentos');
 });
@@ -158,6 +166,17 @@ Route::post('/guardarSubserie', [SubserieController::class, 'store']);
 Route::get('/series/{id}/subseries', [SubserieController::class, 'index']);
 Route::get('/subseries/{id}/expedientes', [SubserieController::class, 'expedientes']);
 Route::post('/series', [SerieController::class, 'store']);
+
+Route::put('/admin/catalogo/fondos/{id}', [FondoController::class, 'update']);
+Route::delete('/admin/catalogo/fondos/{id}', [FondoController::class, 'destroy']);
+Route::put('/admin/catalogo/subfondos/{id}', [SubfondoController::class, 'update']);
+Route::delete('/admin/catalogo/subfondos/{id}', [SubfondoController::class, 'destroy']);
+Route::put('/admin/catalogo/secciones/{id}', [SeccionController::class, 'update']);
+Route::delete('/admin/catalogo/secciones/{id}', [SeccionController::class, 'destroy']);
+Route::put('/admin/catalogo/series/{id}', [SerieController::class, 'update']);
+Route::delete('/admin/catalogo/series/{id}', [SerieController::class, 'destroy']);
+Route::put('/admin/catalogo/subseries/{id}', [SubserieController::class, 'update']);
+Route::delete('/admin/catalogo/subseries/{id}', [SubserieController::class, 'destroy']);
 Route::put('/editarexpedientes/{id}', [ExpedienteController::class, 'actualizar']);
 Route::get('/expedienteindividual', function () {
     return view('administrativas.individual');

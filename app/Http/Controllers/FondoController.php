@@ -1,70 +1,149 @@
 <?php
 
-// app/Http/Controllers/FondoController.php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use App\Models\Fondo;
 use App\Models\Subfondo;
-use Illuminate\Support\Facades\Auth;
 use App\Models\Seccion;
 use App\Services\InstrumentoControlService;
+use App\Http\Controllers\Concerns\AdministraCatalogo;
 
 class FondoController extends Controller
 {
+    use AdministraCatalogo;
+
     public function store(Request $request)
     {
-        $user = auth()->user(); // Obtenemos al usuario logueado
+        if ($denied = $this->denyUnlessRoot()) {
+            return $denied;
+        }
 
-
-        // Validar los datos recibidos
         $request->validate([
             'nombre' => 'required|string|max:255',
             'codigo' => 'required|string|max:50|unique:fondos,codigo',
             'descripcion' => 'nullable|string',
+            'id_dependencia' => 'required|exists:dependencias,id',
+            'id_departamento' => 'required|exists:departamentos,id',
         ]);
 
-        // Crear el nuevo fondo
+        $jerarquia = $this->resolveJerarquiaIds($request);
+
         $fondo = new Fondo();
         $fondo->nombre = $request->input('nombre');
         $fondo->codigo = $request->input('codigo');
         $fondo->descripcion = $request->input('descripcion');
-        $fondo->id_dependencia = $user->id_dependencia;
-        $fondo->id_departamento = $user->id_departamento;
+        $fondo->id_dependencia = $jerarquia['id_dependencia'];
+        $fondo->id_departamento = $jerarquia['id_departamento'];
         $fondo->save();
 
         InstrumentoControlService::crearParaFondo($fondo);
 
-        // Devolver respuesta
         return response()->json([
             'message' => 'Fondo creado correctamente.',
-            'fondo' => $fondo
+            'fondo' => $fondo,
         ], 201);
     }
 
-
-  public function index()
-{
-    $user = Auth::user();
-
-    $query = Fondo::select('id', 'nombre', 'codigo', 'descripcion', 'created_at');
-
-    if (!$user->hasRole('root')) {
-        if (!$user->id_dependencia || !$user->id_departamento) {
-            return response()->json(['error' => 'El usuario no tiene asignada una dependencia o departamento.'], 403);
+    public function update(Request $request, $id)
+    {
+        if ($denied = $this->denyUnlessRoot()) {
+            return $denied;
         }
 
-        $query->where('id_dependencia', $user->id_dependencia)
-              ->where('id_departamento', $user->id_departamento);
+        $fondo = Fondo::findOrFail($id);
+
+        $request->validate([
+            'nombre' => 'required|string|max:255',
+            'codigo' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('fondos', 'codigo')->ignore($fondo->id),
+            ],
+            'descripcion' => 'nullable|string',
+            'id_dependencia' => 'sometimes|exists:dependencias,id',
+            'id_departamento' => 'sometimes|exists:departamentos,id',
+        ]);
+
+        $fondo->nombre = $request->input('nombre');
+        $fondo->codigo = $request->input('codigo');
+        $fondo->descripcion = $request->input('descripcion');
+
+        if ($request->filled('id_dependencia')) {
+            $fondo->id_dependencia = $request->input('id_dependencia');
+        }
+        if ($request->filled('id_departamento')) {
+            $fondo->id_departamento = $request->input('id_departamento');
+        }
+
+        $fondo->save();
+        InstrumentoControlService::sincronizarDesdeFondo($fondo);
+
+        return response()->json([
+            'message' => 'Fondo actualizado correctamente.',
+            'fondo' => $fondo,
+        ]);
     }
 
-    $fondos = $query->orderBy('created_at', 'desc')->get();
+    public function destroy($id)
+    {
+        if ($denied = $this->denyUnlessRoot()) {
+            return $denied;
+        }
 
-    return response()->json($fondos);
-}
+        $fondo = Fondo::findOrFail($id);
 
+        if ($fondo->subfondos()->exists()) {
+            return $this->conflictResponse('No se puede eliminar el fondo porque tiene subfondos asociados.');
+        }
 
+        if ($fondo->secciones()->exists()) {
+            return $this->conflictResponse('No se puede eliminar el fondo porque tiene secciones asociadas.');
+        }
+
+        DB::transaction(function () use ($fondo) {
+            InstrumentoControlService::eliminarParaFondo($fondo);
+            $fondo->delete();
+        });
+
+        return response()->json([
+            'message' => 'Fondo eliminado correctamente.',
+        ]);
+    }
+
+    public function index()
+    {
+        $user = Auth::user();
+
+        $query = Fondo::select(
+            'id',
+            'nombre',
+            'codigo',
+            'descripcion',
+            'id_dependencia',
+            'id_departamento',
+            'created_at'
+        );
+
+        if (!$user->hasRole('root')) {
+            if (!$user->id_dependencia || !$user->id_departamento) {
+                return response()->json([
+                    'error' => 'El usuario no tiene asignada una dependencia o departamento.',
+                ], 403);
+            }
+
+            $query->where('id_dependencia', $user->id_dependencia)
+                ->where('id_departamento', $user->id_departamento);
+        }
+
+        $fondos = $query->orderBy('created_at', 'desc')->get();
+
+        return response()->json($fondos);
+    }
 
     public function allFondos()
     {
@@ -73,21 +152,21 @@ class FondoController extends Controller
 
             $fondosQuery = Fondo::query();
 
-            // Si NO es root, filtra por dependencia y departamento del usuario
             if (!$user->hasRole('root')) {
                 if (!$user->id_dependencia || !$user->id_departamento) {
-                    return response()->json(['error' => 'El usuario no tiene asignada una dependencia o departamento.'], 403);
+                    return response()->json([
+                        'error' => 'El usuario no tiene asignada una dependencia o departamento.',
+                    ], 403);
                 }
 
                 $fondosQuery->where('id_dependencia', $user->id_dependencia)
                     ->where('id_departamento', $user->id_departamento);
             }
 
-          
             $fondos = $fondosQuery->with([
-                'dependencia',   
+                'dependencia',
                 'departamento',
-                'subfondos.secciones.series.subseries', 
+                'subfondos.secciones.series.subseries',
                 'subfondos.secciones.series.subseries.expedientes',
                 'subfondos.secciones.series.expedientes',
             ])->get();
@@ -95,7 +174,7 @@ class FondoController extends Controller
             return response()->json($fondos);
         } catch (\Exception $e) {
             return response()->json([
-                'error' => 'Error al obtener los fondos: ' . $e->getMessage()
+                'error' => 'Error al obtener los fondos: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -122,12 +201,10 @@ class FondoController extends Controller
         return response()->json($fondos);
     }
 
-
-
     public function secciones($id)
     {
         $secciones = Seccion::where('id_fondo', $id)
-            ->whereNull('id_subfondo') // <- este filtro es clave
+            ->whereNull('id_subfondo')
             ->get();
 
         return response()->json($secciones);
@@ -136,6 +213,7 @@ class FondoController extends Controller
     public function subfondos($id)
     {
         $subfondos = Subfondo::where('id_fondo', $id)->get();
+
         return response()->json($subfondos);
     }
 }

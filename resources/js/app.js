@@ -80,6 +80,8 @@ app.component('departamentos-vue', Departamentos);
 import Dependencias from './admin/Dependencias.vue';
 app.component('dependencias-vue', Dependencias);
 
+import AdminCatalogo from './admin/AdminCatalogo.vue';
+app.component('admin-catalogo-vue', AdminCatalogo);
 
 import Indexfondos from './admin/Indexfondos.vue';
 app.component('indexfondos-vue', Indexfondos);

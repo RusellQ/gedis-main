@@ -28,7 +28,7 @@
 
 > Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez.
 
-_(Ninguna feature bajo SDD en curso. Al tomar el siguiente trabajo no trivial, crear `spec/features/NNN-nombre/` con `spec.md` → `plan.md` → `tasks.md` y listarlo aquí.)_
+1. **[001 · Administración del catálogo de clasificación (CRUD)](../features/001-admin-catalogo-estructura/)** — módulo solo `root` en Administración para alta/edición/baja de Fondo → Subserie (los formularios que se perdieron al dejar selects en Crear Expedientes).
 
 ## Backlog / ideas 💡
 

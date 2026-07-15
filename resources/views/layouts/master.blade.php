@@ -182,6 +182,7 @@
                     <div class="bg-white py-2 collapse-inner rounded">
                         @if(Auth::user()->hasRole(['root']))
                         <a class="collapse-item" href="/dependencias">Dependencias</a>
+                        <a class="collapse-item" href="/catalogo-clasificacion">Catálogo de clasificación</a>
                         @endif
                         <a class="collapse-item" href="/departamentos">Departamentos</a>
                         <a class="collapse-item" href="/Createuser">Crear usuario</a>
