@@ -1,6 +1,6 @@
 # 001 · Administración del catálogo de clasificación (CRUD)
 
-**Estado:** en curso
+**Estado:** implementado ✅
 **Ticket:** —
 
 ## Qué hace
@@ -24,14 +24,14 @@ Al refactorizar la creación de expedientes se perdieron los formularios embebid
 
 _Condiciones verificables que deben cumplirse para dar la feature por terminada. Redacta cada una de forma que se pueda comprobar con un sí/no. Marca `[x]` al cumplirse._
 
-- [ ] Existe un ítem visible en **Administración** (p. ej. “Catálogo / Estructura”) **solo** para usuarios con rol `root`.
-- [ ] Un `root` puede dar de alta Fondo, Subfondo (opcional bajo un fondo), Sección, Serie y Subserie respetando la jerarquía (padre obligatorio cuando aplica).
-- [ ] Un `root` puede listar/consultar los niveles existentes (navegación en cascada o árbol) y **editar** nombre, código, descripción y, en serie, los campos de reglas/CADIDO que ya captura el `store` actual.
-- [ ] Un `root` puede **eliminar** un nivel solo si no tiene hijos ni expedientes asociados; si los tiene, la UI/API informa el motivo y no borra.
-- [ ] Usuarios sin rol `root` no ven el menú ni pueden usar los endpoints de este módulo (403 / sin enlace).
-- [ ] Al crear/editar se mantiene coherencia con **Instrumento de Control** (alta ya existente; actualización/borrado del instrumento alineado al nivel tocado).
-- [ ] La creación de expedientes en `/fondos` sigue funcionando: tras alta de un nivel, aparece en los selects en cascada (según dependencia/departamento correspondientes).
-- [ ] Textos de UI y mensajes en **español**.
+- [x] Existe un ítem visible en **Administración** (p. ej. “Catálogo / Estructura”) **solo** para usuarios con rol `root`.
+- [x] Un `root` puede dar de alta Fondo, Subfondo (opcional bajo un fondo), Sección, Serie y Subserie respetando la jerarquía (padre obligatorio cuando aplica).
+- [x] Un `root` puede listar/consultar los niveles existentes (navegación en cascada o árbol) y **editar** nombre, código, descripción y, en serie, los campos de reglas/CADIDO que ya captura el `store` actual.
+- [x] Un `root` puede **eliminar** un nivel solo si no tiene hijos ni expedientes asociados; si los tiene, la UI/API informa el motivo y no borra.
+- [x] Usuarios sin rol `root` no ven el menú ni pueden usar los endpoints de este módulo (403 / sin enlace).
+- [x] Al crear/editar se mantiene coherencia con **Instrumento de Control** (alta ya existente; actualización/borrado del instrumento alineado al nivel tocado).
+- [x] La creación de expedientes en `/fondos` sigue funcionando: tras alta de un nivel, aparece en los selects en cascada (según dependencia/departamento correspondientes).
+- [x] Textos de UI y mensajes en **español**.
 
 ## Fuera de alcance
 

@@ -23,13 +23,13 @@
 15. **Inventario / export Excel** — pantalla e export (`InventarioExport` / Maatwebsite).
 16. **Shell de navegación por módulos** — sidebar SB Admin agrupado (Expedientes, Archivo, Catálogo y estructura, Reportes, Administración) según rol.
 17. **Mejoras UX de creación de expedientes** — refactor de `Fondos.vue` (selectores/secciones) e integración visual de reglas/serie en formularios. *(Última entrega integrada antes de adoptar SDD.)*
+18. **[001 · Administración del catálogo de clasificación (CRUD)](../features/001-admin-catalogo-estructura/)** — módulo solo `root` en Administración (`/catalogo-clasificacion`) para alta/edición/baja de Fondo → Subserie.
 
 ## Siguiente 🔜
 
 > Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez.
 
-1. **[001 · Administración del catálogo de clasificación (CRUD)](../features/001-admin-catalogo-estructura/)** — módulo solo `root` en Administración para alta/edición/baja de Fondo → Subserie (los formularios que se perdieron al dejar selects en Crear Expedientes).
-
+_(Ninguna feature bajo SDD en curso. Al tomar el siguiente trabajo no trivial, crear `spec/features/NNN-nombre/` con `spec.md` → `plan.md` → `tasks.md` y listarlo aquí.)_
 ## Backlog / ideas 💡
 
 > Sin comprometer ni ordenar del todo. Ideas que respetan la constitución.

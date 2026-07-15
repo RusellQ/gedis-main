@@ -17,7 +17,7 @@ Este proyecto (GEDIS — gestión documental / catálogo archivístico AGQROO) u
 
 ## Para una feature nueva (cambio no trivial)
 
-Usa el comando **`/spec`** (`.claude/commands/spec.md`) para evaluar si hace falta spec y, si aplica, generar `spec/features/NNN-...`. Si el trabajo parte de un ticket, crea el scaffolding al **tomar** el ticket, no al crearlo. Bugs y chores pequeños se trabajan directo, sin carpeta de feature.
+Usa el comando **`/spec`** (skill en `.agents/skills/spec/SKILL.md`; copia Claude en `.claude/commands/spec.md`) para evaluar si hace falta spec y, si aplica, generar `spec/features/NNN-...`. Si el trabajo parte de un ticket, crea el scaffolding al **tomar** el ticket, no al crearlo. Bugs y chores pequeños se trabajan directo, sin carpeta de feature. Si el usuario pide `/spec`, **no implementes código**: solo evalúa y genera la carpeta de feature.
 
 Sigue el ciclo **antes de tocar código**:
 
