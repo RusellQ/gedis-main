@@ -24,6 +24,7 @@
 16. **Shell de navegación por módulos** — sidebar SB Admin agrupado (Expedientes, Archivo, Catálogo y estructura, Reportes, Administración) según rol.
 17. **Mejoras UX de creación de expedientes** — refactor de `Fondos.vue` (selectores/secciones) e integración visual de reglas/serie en formularios. *(Última entrega integrada antes de adoptar SDD.)*
 18. **[001 · Administración del catálogo de clasificación (CRUD)](../features/001-admin-catalogo-estructura/)** — módulo solo `root` en Administración (`/catalogo-clasificacion`) para alta/edición/baja de Fondo → Subserie.
+19. **[002 · Visor de unidades documentales (PDF)](../features/002-visor-unidades-documentales/)** — preview Fancybox con navegación entre PDFs; alta de unidades solo en Trámite.
 
 ## Siguiente 🔜
 
