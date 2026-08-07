@@ -18,6 +18,7 @@ use App\Http\Controllers\CatalogoDocumentalController;
 use App\Http\Controllers\DependenciaController;
 use App\Http\Controllers\DepartamentoController;
 use App\Http\Controllers\ReglasDocumentalesController;
+use App\Http\Controllers\DashboardStatsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -222,6 +223,8 @@ Route::get('/login', function () {
 })->name('login');
 
 Route::get('/dashboard', [UsersController::class, 'dashboard'])->name('dashboard')->middleware('auth');
+Route::get('/dashboard/estadisticas', [DashboardStatsController::class, 'index'])->middleware('auth');
+Route::post('/dashboard/estadisticas/pdf', [DashboardStatsController::class, 'pdf'])->middleware('auth');
 
 Route::get('/Createuser', function () {
     return view('administrativas.createuser');

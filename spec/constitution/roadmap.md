@@ -30,7 +30,7 @@
 
 > Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez.
 
-_(Ninguna feature bajo SDD en curso. Al tomar el siguiente trabajo no trivial, crear `spec/features/NNN-nombre/` con `spec.md` → `plan.md` → `tasks.md` y listarlo aquí.)_
+1. **[003 · Estadísticas en inicio (gráficas + PDF)](../features/003-dashboard-estadisticas-pastel/)** — dashboard con gráfica; multi-selección Fondo/Sección/Serie (jerarquía fija); uno–tres tipos de expediente (trámite/concentración/histórico); agrupación configurable; PDF con encabezado oficial + gráfica.
 ## Backlog / ideas 💡
 
 > Sin comprometer ni ordenar del todo. Ideas que respetan la constitución.
