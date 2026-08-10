@@ -90,7 +90,13 @@
               </select> <input v-model="unidad.nombre" placeholder="Nombre" type="text" required
                 class="form-control mb-2" />
               <textarea v-model="unidad.descripcion" placeholder="Descripción" class="form-control mb-2"></textarea>
-              <input @change="handleArchivo" type="file" class="form-control" />
+              <input
+                @change="handleArchivo"
+                type="file"
+                class="form-control"
+                accept="application/pdf,.pdf"
+              />
+              <small class="text-muted">Solo se permiten archivos PDF.</small>
             </div>
             <div class="modal-footer">
               <button type="submit" class="btn btn-success">
@@ -105,29 +111,17 @@
     <!-- Modal Visual de Unidades Documentales -->
     <div ref="modalVerUnidades" class="modal fade" tabindex="-1" aria-labelledby="modalVerUnidadesLabel"
       aria-hidden="true">
-      <div class="modal-dialog">
+      <div class="modal-dialog modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
             <h5 id="modalVerUnidadesLabel" class="modal-title">Unidades Documentales</h5>
             <button type="button" class="btn-close" @click="cerrarModal('ver')" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
-            <div v-if="expedienteActual?.unidades_documentales?.length">
-              <ul class="list-group list-group-flush small">
-                <li v-for="unidad in expedienteActual.unidades_documentales" :key="unidad.id"
-                  class="list-group-item px-0">
-                  <strong>{{ unidad.tipo }}:</strong> {{ unidad.nombre }}
-                  <span v-if="unidad.descripcion"> - {{ unidad.descripcion }}</span>
-                  <a v-if="unidad.archivo" :href="`/storage/${unidad.archivo}`" target="_blank"
-                    class="link-primary ms-2">
-                    Ver archivo
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div v-else>
-              <p class="text-muted">Este expediente no tiene unidades documentales.</p>
-            </div>
+            <ListaUnidadesDocumentales
+              :unidades="expedienteActual?.unidades_documentales || []"
+              @seleccionada="cerrarModal('ver')"
+            />
           </div>
         </div>
       </div>
@@ -328,9 +322,13 @@
 <script>
 import axios from 'axios'
 import { Modal } from 'bootstrap'
+import ListaUnidadesDocumentales from '../components/ListaUnidadesDocumentales.vue'
 
 export default {
   name: 'ExpedientesPage',
+  components: {
+    ListaUnidadesDocumentales,
+  },
   data() {
     return {
       currentUserRoles: [], // inicial vacío, luego carga real
@@ -435,9 +433,24 @@ export default {
         });
     },
     handleArchivo(event) {
-      this.unidad.archivo = event.target.files[0] || null
+      const file = event.target.files[0] || null
+      if (file && file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+        alert('Solo se permiten archivos PDF.')
+        event.target.value = ''
+        this.unidad.archivo = null
+        return
+      }
+      this.unidad.archivo = file
     },
     async guardarUnidadDocumental() {
+      if (this.unidad.archivo) {
+        const file = this.unidad.archivo
+        if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+          alert('Solo se permiten archivos PDF.')
+          return
+        }
+      }
+
       const formData = new FormData()
       formData.append('id_expediente', this.expedienteActual.id)
       formData.append('tipo', this.unidad.tipo)
@@ -451,13 +464,18 @@ export default {
         const response = await axios.post('/unidades-documentales', formData)
 
         if (!this.expedienteActual.unidades_documentales) {
-          this.$set(this.expedienteActual, 'unidades_documentales', [])
+          this.expedienteActual.unidades_documentales = []
         }
         this.expedienteActual.unidades_documentales.push(response.data)
         this.cerrarModal('unidad')
       } catch (error) {
         console.error('Error al guardar unidad documental:', error)
-        alert('Ocurrió un error al guardar la unidad documental.')
+        const mensaje =
+          error.response?.data?.message ||
+          error.response?.data?.errors?.archivo?.[0] ||
+          error.response?.data?.errors?.id_expediente?.[0] ||
+          'Ocurrió un error al guardar la unidad documental.'
+        alert(mensaje)
       }
     }
   },
