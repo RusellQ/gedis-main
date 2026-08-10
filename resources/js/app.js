@@ -55,6 +55,9 @@ app.component('tramite-vue', Tramite);
 import Concentracion from './admin/Concentracion.vue';
 app.component('concentracion-vue', Concentracion);
 
+import Vencidos from './admin/Vencidos.vue';
+app.component('vencidos-vue', Vencidos);
+
 import Reportes from './admin/Reportes.vue';
 app.component('reportes-vue', Reportes);
 

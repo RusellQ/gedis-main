@@ -86,6 +86,10 @@ Route::get('/concentracion', function () {
     return view('administrativas.concentracion');
 });
 
+Route::get('/vencidos', function () {
+    return view('administrativas.vencidos');
+});
+
 Route::get('/reportes', function () {
     return view('administrativas.reportes');
 });
@@ -185,6 +189,8 @@ Route::delete('/bajaexpediente/{id}', [ExpedienteController::class, 'darDeBaja']
     ->name('expediente.baja')
     ->middleware('auth');
 Route::get('/expedienteid/{id}', [ExpedienteController::class, 'getExpedienteById']);
+Route::get('/expedientes/vencidos', [ExpedienteController::class, 'vencidos']);
+Route::get('/expedientes/vencidos/pdf', [ExpedienteController::class, 'pdfVencidos']);
 
 // Batch retrieval de expedientes por IDs (usado por Carátula v2)
 Route::post('/expedientes/batch', [ExpedienteController::class, 'batchByIds']);

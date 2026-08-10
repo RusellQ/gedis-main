@@ -174,4 +174,13 @@ public function generarPDF(Request $request)
 
     return $pdf->download('reporte_expedientes.pdf');
 }
+
+    public function series()
+    {
+        $series = Serie::select('id', 'nombre', 'codigo')
+            ->orderBy('nombre')
+            ->get();
+
+        return response()->json($series, 200);
+    }
 }

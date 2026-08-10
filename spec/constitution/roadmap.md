@@ -24,12 +24,14 @@
 16. **Shell de navegación por módulos** — sidebar SB Admin agrupado (Expedientes, Archivo, Catálogo y estructura, Reportes, Administración) según rol.
 17. **Mejoras UX de creación de expedientes** — refactor de `Fondos.vue` (selectores/secciones) e integración visual de reglas/serie en formularios. *(Última entrega integrada antes de adoptar SDD.)*
 18. **[001 · Administración del catálogo de clasificación (CRUD)](../features/001-admin-catalogo-estructura/)** — módulo solo `root` en Administración (`/catalogo-clasificacion`) para alta/edición/baja de Fondo → Subserie.
+19. **[002 · Expedientes vencidos](../features/002-expedientes-vencidos/)** — módulo para visualizar expedientes cuya vigencia documental ha vencido, accesible a `root` y `administrador`.
 
 ## Siguiente 🔜
 
 > Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez.
 
-_(Ninguna feature bajo SDD en curso. Al tomar el siguiente trabajo no trivial, crear `spec/features/NNN-nombre/` con `spec.md` → `plan.md` → `tasks.md` y listarlo aquí.)_
+> Ninguna feature en curso.
+
 ## Backlog / ideas 💡
 
 > Sin comprometer ni ordenar del todo. Ideas que respetan la constitución.
