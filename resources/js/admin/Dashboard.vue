@@ -70,7 +70,7 @@
             </label>
           </div>
           <p class="field-help">
-            Varios tipos → la gráfica se parte por tipo; uno solo → según el nivel de catálogo.
+            Varios tipos → la gráfica se parte por tipo (incl. vencidos); uno solo → según el nivel de catálogo.
           </p>
         </div>
 
@@ -356,6 +356,7 @@ const ESTADO_COLORS = {
   en_tramite: '#AB0A3D',      // 1945 C
   en_concentracion: '#B68400', // 125 C
   en_historico: '#440412',     // 7421 C
+  vencidos: '#3D3935',         // Black 7 C
 }
 // Paleta para dimensiones de catálogo (fondos/subfondos/secciones/series/subseries)
 const PALETTE = [
@@ -379,6 +380,7 @@ export default {
         { value: 'en_tramite', label: 'En trámite', color: ESTADO_COLORS.en_tramite },
         { value: 'en_concentracion', label: 'Concentración', color: ESTADO_COLORS.en_concentracion },
         { value: 'en_historico', label: 'Histórico', color: ESTADO_COLORS.en_historico },
+        { value: 'vencidos', label: 'Vencidos', color: ESTADO_COLORS.vencidos },
       ],
       tiposGrafica: [
         { value: 'pie', label: 'Pastel', ico: '◕' },
@@ -908,7 +910,7 @@ export default {
 /* KPIs */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
   margin-bottom: 1.5rem;
 }

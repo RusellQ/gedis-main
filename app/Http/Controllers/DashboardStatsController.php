@@ -17,7 +17,7 @@ use Illuminate\Validation\Rule;
 
 class DashboardStatsController extends Controller
 {
-    private const ESTADOS = ['en_tramite', 'en_concentracion', 'en_historico'];
+    private const ESTADOS = ['en_tramite', 'en_concentracion', 'en_historico', 'vencidos'];
 
     private const TIPOS_GRAFICA = ['pie', 'bar', 'polarArea'];
 
@@ -29,6 +29,7 @@ class DashboardStatsController extends Controller
         'en_tramite' => 'En trámite',
         'en_concentracion' => 'En concentración',
         'en_historico' => 'En histórico',
+        'vencidos' => 'Vencidos',
     ];
 
     private const LABELS_TIPO = [
@@ -362,14 +363,28 @@ class DashboardStatsController extends Controller
 
     private function agregarExpedientes(array $filtros, User $user, string $alcance, string $agrupaPor): array
     {
+        // Varios tipos (ciclo vital y/o vencidos) → un segmento por tipo seleccionado.
+        if ($agrupaPor === 'estado') {
+            return $this->contarPorTiposSeleccionados($filtros, $user, $alcance);
+        }
+
+        $query = $this->baseQueryExpedientes($filtros, $user, $alcance);
+        $this->aplicarFiltroTipoUnico($query, $filtros['estados'][0] ?? null);
+
+        return $this->agruparYContar($query, $agrupaPor);
+    }
+
+    /**
+     * Query base: alcance + joins de catálogo + filtros de jerarquía (sin filtrar por tipo).
+     */
+    private function baseQueryExpedientes(array $filtros, User $user, string $alcance): Builder
+    {
         $query = Expediente::query()->from('expedientes');
 
         if ($alcance === 'dependencia') {
             $query->where('expedientes.id_dependencia', $user->id_dependencia)
                 ->where('expedientes.id_departamento', $user->id_departamento);
         }
-
-        $query->whereIn('expedientes.estado', $filtros['estados']);
 
         $query->leftJoin('series', 'expedientes.id_serie', '=', 'series.id')
             ->leftJoin('secciones', 'series.id_seccion', '=', 'secciones.id')
@@ -395,7 +410,59 @@ class DashboardStatsController extends Controller
             $query->whereIn('expedientes.id_subserie', $filtros['id_subseries']);
         }
 
-        return $this->agruparYContar($query, $agrupaPor);
+        return $query;
+    }
+
+    /**
+     * Vencidos: fecha_cierre + plazo de la serie (plazo_ta ?? plazo_at ?? plazo_ac) ≤ hoy.
+     * Misma regla que ExpedienteController::esExpedienteVencido.
+     */
+    private function aplicarCriterioVencido(Builder $query): void
+    {
+        $query->whereNotNull('expedientes.fecha_cierre')
+            ->whereRaw('COALESCE(series.plazo_ta, series.plazo_at, series.plazo_ac) IS NOT NULL')
+            ->whereRaw(
+                'DATE_ADD(expedientes.fecha_cierre, INTERVAL COALESCE(series.plazo_ta, series.plazo_at, series.plazo_ac) YEAR) <= CURDATE()'
+            );
+    }
+
+    private function aplicarFiltroTipoUnico(Builder $query, ?string $tipo): void
+    {
+        if ($tipo === null) {
+            return;
+        }
+
+        if ($tipo === 'vencidos') {
+            $this->aplicarCriterioVencido($query);
+            return;
+        }
+
+        $query->where('expedientes.estado', $tipo);
+    }
+
+    /**
+     * Un conteo independiente por cada tipo marcado (incluye «Vencidos» calculado).
+     *
+     * @return list<array{label: string, total: int}>
+     */
+    private function contarPorTiposSeleccionados(array $filtros, User $user, string $alcance): array
+    {
+        $pairs = [];
+
+        foreach ($filtros['estados'] as $tipo) {
+            $query = $this->baseQueryExpedientes($filtros, $user, $alcance);
+            $this->aplicarFiltroTipoUnico($query, $tipo);
+            $total = (int) $query->select(DB::raw('COUNT(DISTINCT expedientes.id) as total'))->value('total');
+
+            $pairs[] = [
+                'label' => self::LABELS_ESTADO[$tipo] ?? $tipo,
+                'total' => $total,
+            ];
+        }
+
+        usort($pairs, static fn ($a, $b) => $b['total'] <=> $a['total']);
+
+        return $pairs;
     }
 
     private function agruparYContar(Builder $query, string $agrupaPor): array
@@ -431,24 +498,11 @@ class DashboardStatsController extends Controller
                     DB::raw('COUNT(DISTINCT expedientes.id) as total')
                 )->groupBy('subseries.id', 'subseries.nombre');
                 break;
-            case 'estado':
-                $query->select(
-                    'expedientes.estado as estado_key',
-                    DB::raw('COUNT(DISTINCT expedientes.id) as total')
-                )->groupBy('expedientes.estado');
-                break;
             default:
                 return [];
         }
 
         $rows = $query->orderByDesc('total')->get();
-
-        if ($agrupaPor === 'estado') {
-            return $rows->map(fn ($row) => [
-                'label' => self::LABELS_ESTADO[$row->estado_key] ?? ($row->estado_key ?: 'Sin estado'),
-                'total' => (int) $row->total,
-            ])->all();
-        }
 
         return $rows->map(fn ($row) => [
             'label' => $row->label ?: 'Sin clasificar',
