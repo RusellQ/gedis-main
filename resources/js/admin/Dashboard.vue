@@ -3,7 +3,7 @@
     <div class="text-center mb-4">
       <h1 class="h3 mb-2">Bienvenid@, {{ userName }}</h1>
       <p class="text-muted mb-0">
-        Jerarquía fija: Fondo → Sección → Serie → Expediente. Combine fondos, secciones y series; marque uno, dos o los tres tipos de expediente.
+        Jerarquía fija: Fondo → Sección → Serie → Expediente. Elija niveles con casillas (sin Ctrl) y los tipos de expediente a mostrar.
       </p>
     </div>
 
@@ -38,54 +38,42 @@
             </div>
           </div>
           <div class="form-text">
-            Uno, dos o los tres. Si marca más de uno, la gráfica se parte por tipo; si marca solo uno, se parte según el nivel de catálogo elegido.
+            Uno, dos o los tres. Varios tipos → la gráfica se parte por tipo; un solo tipo → según el nivel de catálogo.
           </div>
         </div>
 
         <div class="row g-3 mb-3">
           <div class="col-md-4">
             <label class="form-label">Fondos</label>
-            <select
-              v-model="idsFondos"
-              class="form-select"
-              multiple
-              size="5"
-              @change="onFondosChange"
-            >
-              <option v-for="f in fondos" :key="f.id" :value="String(f.id)">{{ f.nombre }}</option>
-            </select>
-            <div class="form-text">Vacío = todos. Ctrl/Cmd + clic para varios.</div>
+            <button type="button" class="btn btn-outline-primary w-100 text-start" @click="abrirModal('fondos')">
+              {{ resumenFondos }}
+            </button>
+            <div class="form-text">Vacío = todos los fondos de su alcance.</div>
           </div>
-
           <div class="col-md-4">
             <label class="form-label">Secciones</label>
-            <select
-              v-model="idsSecciones"
-              class="form-select"
-              multiple
-              size="5"
+            <button
+              type="button"
+              class="btn btn-outline-primary w-100 text-start"
               :disabled="!idsFondos.length"
-              @change="onSeccionesChange"
+              @click="abrirModal('secciones')"
             >
-              <option v-for="s in secciones" :key="s.id" :value="String(s.id)">{{ s.nombre }}</option>
-            </select>
+              {{ resumenSecciones }}
+            </button>
             <div class="form-text">
               {{ idsFondos.length ? 'Solo de los fondos elegidos.' : 'Primero elija fondo(s).' }}
             </div>
           </div>
-
           <div class="col-md-4">
             <label class="form-label">Series</label>
-            <select
-              v-model="idsSeries"
-              class="form-select"
-              multiple
-              size="5"
+            <button
+              type="button"
+              class="btn btn-outline-primary w-100 text-start"
               :disabled="!idsSecciones.length"
-              @change="cargarEstadisticas"
+              @click="abrirModal('series')"
             >
-              <option v-for="s in series" :key="s.id" :value="String(s.id)">{{ s.nombre }}</option>
-            </select>
+              {{ resumenSeries }}
+            </button>
             <div class="form-text">
               {{ idsSecciones.length ? 'Solo de las secciones elegidas. Vacío = todas.' : 'Primero elija sección(es).' }}
             </div>
@@ -128,6 +116,54 @@
             :type="tipoGrafica"
             :chart-data="chartData"
           />
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal selección con checkboxes -->
+    <div
+      v-if="modalAbierto"
+      class="modal-backdrop-custom"
+      @click.self="cerrarModal"
+    >
+      <div class="modal-panel card shadow" role="dialog" aria-modal="true">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <strong>{{ modalTitulo }}</strong>
+          <button type="button" class="btn-close" aria-label="Cerrar" @click="cerrarModal"></button>
+        </div>
+        <div class="card-body modal-body-scroll">
+          <div v-if="!modalOpciones.length" class="text-muted">
+            No hay opciones disponibles para este nivel.
+          </div>
+          <div v-else class="d-flex flex-column gap-2">
+            <div class="form-check" v-for="item in modalOpciones" :key="item.id">
+              <input
+                :id="'modal-item-' + item.id"
+                v-model="modalDraft"
+                class="form-check-input"
+                type="checkbox"
+                :value="String(item.id)"
+              >
+              <label class="form-check-label" :for="'modal-item-' + item.id">
+                {{ item.nombre }}
+                <span v-if="item.codigo" class="text-muted small"> ({{ item.codigo }})</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer d-flex flex-wrap gap-2 justify-content-between">
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" @click="modalSeleccionarTodo">
+              Marcar todos
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" @click="modalDraft = []">
+              Limpiar
+            </button>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-secondary" @click="cerrarModal">Cancelar</button>
+            <button type="button" class="btn btn-sm btn-primary" @click="aplicarModal">Aplicar</button>
+          </div>
         </div>
       </div>
     </div>
@@ -178,9 +214,37 @@ export default {
       descargando: false,
       error: null,
       chartKey: 0,
+      modalNivel: null,
+      modalDraft: [],
     }
   },
   computed: {
+    modalAbierto() {
+      return !!this.modalNivel
+    },
+    modalTitulo() {
+      if (this.modalNivel === 'fondos') return 'Seleccionar fondos'
+      if (this.modalNivel === 'secciones') return 'Seleccionar secciones'
+      if (this.modalNivel === 'series') return 'Seleccionar series'
+      return ''
+    },
+    modalOpciones() {
+      if (this.modalNivel === 'fondos') return this.fondos
+      if (this.modalNivel === 'secciones') return this.secciones
+      if (this.modalNivel === 'series') return this.series
+      return []
+    },
+    resumenFondos() {
+      return this.resumenSeleccion(this.idsFondos, this.fondos, 'Todos los fondos')
+    },
+    resumenSecciones() {
+      if (!this.idsFondos.length) return 'Elija primero fondo(s)'
+      return this.resumenSeleccion(this.idsSecciones, this.secciones, 'Todas las secciones de los fondos')
+    },
+    resumenSeries() {
+      if (!this.idsSecciones.length) return 'Elija primero sección(es)'
+      return this.resumenSeleccion(this.idsSeries, this.series, 'Todas las series de las secciones')
+    },
     tieneDatos() {
       return this.total > 0 && this.labels.length > 0
     },
@@ -206,6 +270,61 @@ export default {
     await this.cargarEstadisticas()
   },
   methods: {
+    resumenSeleccion(ids, catalogo, vacioLabel) {
+      if (!ids.length) return vacioLabel
+      if (ids.length === 1) {
+        const item = catalogo.find((c) => String(c.id) === String(ids[0]))
+        return item?.nombre || `1 seleccionado`
+      }
+      return `${ids.length} seleccionados`
+    },
+    abrirModal(nivel) {
+      this.modalNivel = nivel
+      if (nivel === 'fondos') this.modalDraft = [...this.idsFondos]
+      if (nivel === 'secciones') this.modalDraft = [...this.idsSecciones]
+      if (nivel === 'series') this.modalDraft = [...this.idsSeries]
+    },
+    cerrarModal() {
+      this.modalNivel = null
+      this.modalDraft = []
+    },
+    modalSeleccionarTodo() {
+      this.modalDraft = this.modalOpciones.map((i) => String(i.id))
+    },
+    async aplicarModal() {
+      const nivel = this.modalNivel
+      const draft = [...this.modalDraft]
+      this.cerrarModal()
+
+      if (nivel === 'fondos') {
+        this.idsFondos = draft
+        this.idsSecciones = []
+        this.idsSeries = []
+        this.series = []
+        this.secciones = []
+        if (this.idsFondos.length) {
+          await this.cargarSecciones()
+        }
+        await this.cargarEstadisticas()
+        return
+      }
+
+      if (nivel === 'secciones') {
+        this.idsSecciones = draft
+        this.idsSeries = []
+        this.series = []
+        if (this.idsSecciones.length) {
+          await this.cargarSeries()
+        }
+        await this.cargarEstadisticas()
+        return
+      }
+
+      if (nivel === 'series') {
+        this.idsSeries = draft
+        await this.cargarEstadisticas()
+      }
+    },
     uniqueById(items) {
       const map = new Map()
       for (const item of items) {
@@ -235,24 +354,6 @@ export default {
         this.data = []
         this.total = 0
         return
-      }
-      await this.cargarEstadisticas()
-    },
-    async onFondosChange() {
-      this.idsSecciones = []
-      this.idsSeries = []
-      this.series = []
-      this.secciones = []
-      if (this.idsFondos.length) {
-        await this.cargarSecciones()
-      }
-      await this.cargarEstadisticas()
-    },
-    async onSeccionesChange() {
-      this.idsSeries = []
-      this.series = []
-      if (this.idsSecciones.length) {
-        await this.cargarSeries()
       }
       await this.cargarEstadisticas()
     },
@@ -399,5 +500,28 @@ export default {
   max-width: 1100px;
   margin: 0 auto;
   padding: 1.5rem 1rem 2rem;
+}
+
+.modal-backdrop-custom {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-panel {
+  width: min(520px, 100%);
+  max-height: min(80vh, 640px);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-body-scroll {
+  overflow-y: auto;
+  max-height: 50vh;
 }
 </style>
