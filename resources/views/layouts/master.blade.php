@@ -132,6 +132,9 @@
                         <a class="collapse-item" href="/tramite">En Tramite</a>
                         <a class="collapse-item" href="/concentracion">En Concentracion</a>
                         <a class="collapse-item" href="/historico">En Historico</a>
+                        @if(Auth::user()->hasRole(['administrador', 'root']))
+                        <a class="collapse-item" href="/vencidos">Expedientes Vencidos</a>
+                        @endif
                         @if(Auth::user()->hasRole(['root']))
                         <a class="collapse-item" href="/bajas">Bajas</a>
                         @endif

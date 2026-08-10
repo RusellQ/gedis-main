@@ -11,6 +11,7 @@ use App\Services\InstrumentoControlService;
 use App\Services\ReglasDocumentalesService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class ExpedienteController extends Controller
 {
@@ -225,6 +226,209 @@ class ExpedienteController extends Controller
                 'error' => 'Error al obtener los expedientes. ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function vencidos()
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['error' => 'No autenticado.'], 403);
+        }
+
+        if (!$user->hasRole(['root', 'administrador'])) {
+            return response()->json(['error' => 'No autorizado.'], 403);
+        }
+
+        $query = Expediente::with([
+            'serie.seccion.fondo',
+            'serie.seccion.subfondo',
+            'subserie',
+            'instrumentoControl',
+        ])->whereNotNull('fecha_cierre');
+
+        if (!$user->hasRole('root')) {
+            if (!$user->id_dependencia || !$user->id_departamento) {
+                return response()->json(['error' => 'El usuario no tiene asignada una dependencia o departamento.'], 403);
+            }
+
+            $query->where('id_dependencia', $user->id_dependencia)
+                ->where('id_departamento', $user->id_departamento);
+        }
+
+        $expedientes = $query->get()->filter(fn ($exp) => $this->esExpedienteVencido($exp));
+
+        $datos = $expedientes->map(function ($exp) {
+            $base = ReglasDocumentalesService::formatearExpedienteParaApi($exp);
+
+            return array_merge($base, [
+                'fondo' => optional(optional($exp->serie)->seccion->fondo)->nombre,
+                'subfondo' => optional(optional($exp->serie)->seccion->subfondo)->nombre,
+                'seccion' => optional(optional($exp->serie)->seccion)->nombre,
+                'serie' => optional($exp->serie)->nombre,
+                'id_serie' => $exp->id_serie,
+                'subserie' => optional($exp->subserie)->nombre,
+                'serie_detalle' => $exp->serie ? [
+                    'id' => $exp->serie->id,
+                    'nombre' => $exp->serie->nombre,
+                    'codigo' => $exp->serie->codigo,
+                    'vigencia_ad' => (bool) $exp->serie->vigencia_ad,
+                    'vigencia_le' => (bool) $exp->serie->vigencia_le,
+                    'vigencia_confi' => (bool) $exp->serie->vigencia_confi,
+                    'plazo_at' => $exp->serie->plazo_at,
+                    'plazo_ac' => $exp->serie->plazo_ac,
+                    'plazo_ta' => $exp->serie->plazo_ta,
+                ] : null,
+                'subserie_detalle' => $exp->subserie ? [
+                    'id' => $exp->subserie->id,
+                    'nombre' => $exp->subserie->nombre,
+                    'codigo' => $exp->subserie->codigo,
+                ] : null,
+                'fecha_vencimiento' => $this->fechaVencimientoExpediente($exp),
+            ]);
+        })->values();
+
+        return response()->json($datos);
+    }
+
+    public function pdfVencidos(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['error' => 'No autenticado.'], 403);
+        }
+
+        if (!$user->hasRole(['root', 'administrador'])) {
+            return response()->json(['error' => 'No autorizado.'], 403);
+        }
+
+        $query = Expediente::with([
+            'serie.seccion.fondo',
+            'serie.seccion.subfondo',
+            'subserie',
+            'instrumentoControl',
+        ])->whereNotNull('fecha_cierre');
+
+        if (!$user->hasRole('root')) {
+            if (!$user->id_dependencia || !$user->id_departamento) {
+                return response()->json(['error' => 'El usuario no tiene asignada una dependencia o departamento.'], 403);
+            }
+
+            $query->where('id_dependencia', $user->id_dependencia)
+                ->where('id_departamento', $user->id_departamento);
+        }
+
+        if ($request->filled('serie_id')) {
+            $query->where('id_serie', $request->serie_id);
+        }
+
+        if ($request->filled('fecha_desde')) {
+            $query->whereDate('fecha_cierre', '>=', $request->fecha_desde);
+        }
+
+        if ($request->filled('fecha_hasta')) {
+            $query->whereDate('fecha_cierre', '<=', $request->fecha_hasta);
+        }
+
+        $expedientes = $query->get()->filter(fn ($exp) => $this->esExpedienteVencido($exp));
+
+        if ($request->filled('valor_documental')) {
+            $valor = $request->valor_documental;
+            $expedientes = $expedientes->filter(function ($exp) use ($valor) {
+                if (!$exp->serie) {
+                    return false;
+                }
+
+                return match ($valor) {
+                    'Administrativo' => $exp->serie->vigencia_ad,
+                    'Legal' => $exp->serie->vigencia_le,
+                    'Contable' => $exp->serie->vigencia_confi,
+                    default => true,
+                };
+            });
+        }
+
+        if ($request->filled('busqueda')) {
+            $texto = strtolower(trim($request->busqueda));
+            $expedientes = $expedientes->filter(function ($exp) use ($texto) {
+                return collect([
+                    $exp->nombre,
+                    $exp->codigo,
+                    $exp->clave,
+                    optional($exp->serie)->nombre,
+                    optional($exp->subserie)->nombre,
+                    $exp->ubicacion_topografica,
+                ])->filter()->contains(fn ($value) => str_contains(strtolower($value), $texto));
+            });
+        }
+
+        $datos = $expedientes->map(function ($exp) {
+            $fechaVencimiento = $this->fechaVencimientoExpediente($exp);
+            $fechaVencimientoCarbon = $fechaVencimiento ? Carbon::parse($fechaVencimiento) : null;
+
+            return [
+                'clave' => $exp->clave,
+                'codigo' => $exp->codigo,
+                'nombre' => $exp->nombre,
+                'descripcion' => $exp->observacion,
+                'fecha_apertura' => $exp->fecha_apertura,
+                'fecha_cierre' => $exp->fecha_cierre,
+                'serie' => optional($exp->serie)->nombre,
+                'subserie' => optional($exp->subserie)->nombre,
+                'fondo' => optional(optional($exp->serie)->seccion->fondo)->nombre,
+                'seccion' => optional(optional($exp->serie)->seccion)->nombre,
+                'valor_documental' => ReglasDocumentalesService::valorDocumentalTextoDesdeSerie($exp->serie),
+                'plazo_at' => optional($exp->serie)->plazo_at,
+                'plazo_ac' => optional($exp->serie)->plazo_ac,
+                'plazo_ta' => optional($exp->serie)->plazo_ta,
+                'fecha_vencimiento' => $fechaVencimiento,
+                'dias_vencidos' => $fechaVencimientoCarbon ? Carbon::today()->diffInDays($fechaVencimientoCarbon) : null,
+            ];
+        });
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.expedientes_vencidos', [
+            'expedientes' => $datos,
+            'serieSeleccionada' => $request->serie_id ? Serie::find($request->serie_id)?->nombre : null,
+            'fechaDesde' => $request->fecha_desde,
+            'fechaHasta' => $request->fecha_hasta,
+            'valorDocumental' => $request->valor_documental,
+            'busqueda' => $request->busqueda,
+        ])->setPaper('legal', 'landscape');
+
+        return $pdf->stream('expedientes_vencidos.pdf');
+    }
+
+    private function esExpedienteVencido(Expediente $expediente): bool
+    {
+        if (!$expediente->fecha_cierre || !$expediente->serie) {
+            return false;
+        }
+
+        $plazo = $expediente->serie->plazo_ta ?? $expediente->serie->plazo_at ?? $expediente->serie->plazo_ac;
+        if ($plazo === null) {
+            return false;
+        }
+
+        $fechaVencimiento = Carbon::parse($expediente->fecha_cierre)->addYears($plazo);
+
+        return $fechaVencimiento->lte(Carbon::today());
+    }
+
+    private function fechaVencimientoExpediente(Expediente $expediente): ?string
+    {
+        if (!$expediente->fecha_cierre || !$expediente->serie) {
+            return null;
+        }
+
+        $plazo = $expediente->serie->plazo_ta ?? $expediente->serie->plazo_at ?? $expediente->serie->plazo_ac;
+        if ($plazo === null) {
+            return null;
+        }
+
+        return Carbon::parse($expediente->fecha_cierre)
+            ->addYears($plazo)
+            ->toDateString();
     }
 
     public function porSerie($id)
