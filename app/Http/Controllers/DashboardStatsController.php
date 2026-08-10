@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Expediente;
 use App\Models\Seccion;
 use App\Models\Serie;
+use App\Models\Subfondo;
+use App\Models\Subserie;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,7 +21,7 @@ class DashboardStatsController extends Controller
 
     private const TIPOS_GRAFICA = ['pie', 'bar', 'polarArea'];
 
-    private const AGRUPACIONES = ['fondo', 'seccion', 'serie', 'subserie', 'estado'];
+    private const AGRUPACIONES = ['fondo', 'subfondo', 'seccion', 'serie', 'subserie', 'estado'];
 
     private const MAX_SEGMENTOS = 12;
 
@@ -37,6 +39,7 @@ class DashboardStatsController extends Controller
 
     private const LABELS_AGRUPA = [
         'fondo' => 'por fondo',
+        'subfondo' => 'por subfondo',
         'seccion' => 'por sección',
         'serie' => 'por serie',
         'subserie' => 'por subserie',
@@ -120,8 +123,10 @@ class DashboardStatsController extends Controller
         $request->merge([
             'estados' => $this->aLista($request->input('estados')),
             'id_fondos' => $this->aLista($request->input('id_fondos')),
+            'id_subfondos' => $this->aLista($request->input('id_subfondos')),
             'id_secciones' => $this->aLista($request->input('id_secciones')),
             'id_series' => $this->aLista($request->input('id_series')),
+            'id_subseries' => $this->aLista($request->input('id_subseries')),
         ]);
 
         $rules = [
@@ -129,10 +134,14 @@ class DashboardStatsController extends Controller
             'estados.*' => [Rule::in(self::ESTADOS)],
             'id_fondos' => ['nullable', 'array'],
             'id_fondos.*' => ['integer'],
+            'id_subfondos' => ['nullable', 'array'],
+            'id_subfondos.*' => ['integer'],
             'id_secciones' => ['nullable', 'array'],
             'id_secciones.*' => ['integer'],
             'id_series' => ['nullable', 'array'],
             'id_series.*' => ['integer'],
+            'id_subseries' => ['nullable', 'array'],
+            'id_subseries.*' => ['integer'],
         ];
 
         if ($paraPdf) {
@@ -143,9 +152,18 @@ class DashboardStatsController extends Controller
         $validated = $request->validate($rules);
 
         $fondos = array_values(array_unique(array_map('intval', $validated['id_fondos'] ?? [])));
+        $subfondos = array_values(array_unique(array_map('intval', $validated['id_subfondos'] ?? [])));
         $secciones = array_values(array_unique(array_map('intval', $validated['id_secciones'] ?? [])));
         $series = array_values(array_unique(array_map('intval', $validated['id_series'] ?? [])));
+        $subseries = array_values(array_unique(array_map('intval', $validated['id_subseries'] ?? [])));
         $estados = array_values(array_unique($validated['estados']));
+
+        // Cascada: niveles opcionales (subfondo/subserie) y obligatorios relativos.
+        if ($subfondos !== [] && $fondos === []) {
+            return response()->json([
+                'message' => 'Debe seleccionar al menos un fondo antes de filtrar por subfondo.',
+            ], 422);
+        }
 
         if ($secciones !== [] && $fondos === []) {
             return response()->json([
@@ -159,15 +177,50 @@ class DashboardStatsController extends Controller
             ], 422);
         }
 
-        if ($secciones !== [] && $fondos !== []) {
-            $invalidas = Seccion::query()
-                ->whereIn('id', $secciones)
+        if ($subseries !== [] && $series === []) {
+            return response()->json([
+                'message' => 'Debe seleccionar al menos una serie antes de filtrar por subserie.',
+            ], 422);
+        }
+
+        if ($subfondos !== [] && $fondos !== []) {
+            $invalidos = Subfondo::query()
+                ->whereIn('id', $subfondos)
                 ->whereNotIn('id_fondo', $fondos)
                 ->pluck('id');
-            if ($invalidas->isNotEmpty()) {
+            if ($invalidos->isNotEmpty()) {
                 return response()->json([
-                    'message' => 'Hay secciones que no pertenecen a los fondos seleccionados. Respete Fondo → Sección.',
+                    'message' => 'Hay subfondos que no pertenecen a los fondos seleccionados. Respete Fondo → (Subfondo).',
                 ], 422);
+            }
+        }
+
+        if ($secciones !== [] && $fondos !== []) {
+            if ($subfondos !== []) {
+                // Con subfondos elegidos: la sección debe colgar de esos subfondos.
+                $invalidas = Seccion::query()
+                    ->whereIn('id', $secciones)
+                    ->where(function ($q) use ($subfondos) {
+                        $q->whereNull('id_subfondo')
+                            ->orWhereNotIn('id_subfondo', $subfondos);
+                    })
+                    ->pluck('id');
+                if ($invalidas->isNotEmpty()) {
+                    return response()->json([
+                        'message' => 'Hay secciones que no pertenecen a los subfondos seleccionados. Respete (Subfondo) → Sección.',
+                    ], 422);
+                }
+            } else {
+                // Sin subfondos: basta pertenecer a los fondos (vía id_fondo; incluye secciones con o sin subfondo).
+                $invalidas = Seccion::query()
+                    ->whereIn('id', $secciones)
+                    ->whereNotIn('id_fondo', $fondos)
+                    ->pluck('id');
+                if ($invalidas->isNotEmpty()) {
+                    return response()->json([
+                        'message' => 'Hay secciones que no pertenecen a los fondos seleccionados. Respete Fondo → Sección.',
+                    ], 422);
+                }
             }
         }
 
@@ -183,9 +236,23 @@ class DashboardStatsController extends Controller
             }
         }
 
+        if ($subseries !== [] && $series !== []) {
+            $invalidas = Subserie::query()
+                ->whereIn('id', $subseries)
+                ->whereNotIn('id_serie', $series)
+                ->pluck('id');
+            if ($invalidas->isNotEmpty()) {
+                return response()->json([
+                    'message' => 'Hay subseries que no pertenecen a las series seleccionadas. Respete Serie → (Subserie).',
+                ], 422);
+            }
+        }
+
         $validated['id_fondos'] = $fondos;
+        $validated['id_subfondos'] = $subfondos;
         $validated['id_secciones'] = $secciones;
         $validated['id_series'] = $series;
+        $validated['id_subseries'] = $subseries;
         $validated['estados'] = $estados;
         $validated['agrupar_por'] = $this->resolverAgrupacionAutomatica($validated);
 
@@ -211,25 +278,39 @@ class DashboardStatsController extends Controller
     /**
      * Sin selector "agrupar por": los tipos de expediente y el nivel de jerarquía deciden.
      * - Varios tipos → segmentos por tipo (trámite / concentración / histórico).
-     * - Un solo tipo → siguiente nivel según Fondo → Sección → Serie.
+     * - Subfondo y subserie solo agrupan si el usuario los eligió explícitamente.
+     * - Con series (aunque sea una) → por serie, hasta que elija subserie.
      */
     private function resolverAgrupacionAutomatica(array $filtros): string
     {
         $estados = $filtros['estados'] ?? [];
         $fondos = $filtros['id_fondos'] ?? [];
+        $subfondos = $filtros['id_subfondos'] ?? [];
         $secciones = $filtros['id_secciones'] ?? [];
         $series = $filtros['id_series'] ?? [];
+        $subseries = $filtros['id_subseries'] ?? [];
 
         if (count($estados) > 1) {
             return 'estado';
         }
 
+        // Opcional: solo si el usuario eligió subseries.
+        if ($subseries !== []) {
+            return 'subserie';
+        }
+
+        // Con series elegidas (1 o más) → por serie; no saltar a subserie sola.
         if ($series !== []) {
             return 'serie';
         }
 
         if ($secciones !== []) {
             return 'serie';
+        }
+
+        // Opcional: solo si el usuario eligió subfondos.
+        if ($subfondos !== []) {
+            return 'subfondo';
         }
 
         if ($fondos !== []) {
@@ -293,17 +374,25 @@ class DashboardStatsController extends Controller
         $query->leftJoin('series', 'expedientes.id_serie', '=', 'series.id')
             ->leftJoin('secciones', 'series.id_seccion', '=', 'secciones.id')
             ->leftJoin('fondos', 'secciones.id_fondo', '=', 'fondos.id')
+            ->leftJoin('subfondos', 'secciones.id_subfondo', '=', 'subfondos.id')
             ->leftJoin('subseries', 'expedientes.id_subserie', '=', 'subseries.id');
 
-        // Jerarquía Fondo → Sección → Serie → Expediente
+        // Jerarquía Fondo → (Subfondo) → Sección → Serie → (Subserie) → Expediente
+        // Subfondo/subserie vacíos = no excluir expedientes sin ese nivel opcional.
         if ($filtros['id_fondos'] !== []) {
             $query->whereIn('secciones.id_fondo', $filtros['id_fondos']);
+        }
+        if ($filtros['id_subfondos'] !== []) {
+            $query->whereIn('secciones.id_subfondo', $filtros['id_subfondos']);
         }
         if ($filtros['id_secciones'] !== []) {
             $query->whereIn('series.id_seccion', $filtros['id_secciones']);
         }
         if ($filtros['id_series'] !== []) {
             $query->whereIn('expedientes.id_serie', $filtros['id_series']);
+        }
+        if ($filtros['id_subseries'] !== []) {
+            $query->whereIn('expedientes.id_subserie', $filtros['id_subseries']);
         }
 
         return $this->agruparYContar($query, $agrupaPor);
@@ -317,6 +406,12 @@ class DashboardStatsController extends Controller
                     DB::raw("COALESCE(NULLIF(fondos.nombre, ''), 'Sin clasificar') as label"),
                     DB::raw('COUNT(DISTINCT expedientes.id) as total')
                 )->groupBy('fondos.id', 'fondos.nombre');
+                break;
+            case 'subfondo':
+                $query->select(
+                    DB::raw("COALESCE(NULLIF(subfondos.nombre, ''), 'Sin subfondo') as label"),
+                    DB::raw('COUNT(DISTINCT expedientes.id) as total')
+                )->groupBy('subfondos.id', 'subfondos.nombre');
                 break;
             case 'seccion':
                 $query->select(
@@ -383,6 +478,10 @@ class DashboardStatsController extends Controller
             $nombres = DB::table('fondos')->whereIn('id', $filtros['id_fondos'])->pluck('nombre')->all();
             $partes[] = 'Fondos: ' . implode(', ', $nombres);
         }
+        if ($filtros['id_subfondos'] !== []) {
+            $nombres = DB::table('subfondos')->whereIn('id', $filtros['id_subfondos'])->pluck('nombre')->all();
+            $partes[] = 'Subfondos: ' . implode(', ', $nombres);
+        }
         if ($filtros['id_secciones'] !== []) {
             $nombres = DB::table('secciones')->whereIn('id', $filtros['id_secciones'])->pluck('nombre')->all();
             $partes[] = 'Secciones: ' . implode(', ', $nombres);
@@ -390,6 +489,10 @@ class DashboardStatsController extends Controller
         if ($filtros['id_series'] !== []) {
             $nombres = DB::table('series')->whereIn('id', $filtros['id_series'])->pluck('nombre')->all();
             $partes[] = 'Series: ' . implode(', ', $nombres);
+        }
+        if ($filtros['id_subseries'] !== []) {
+            $nombres = DB::table('subseries')->whereIn('id', $filtros['id_subseries'])->pluck('nombre')->all();
+            $partes[] = 'Subseries: ' . implode(', ', $nombres);
         }
 
         return implode(' · ', $partes);

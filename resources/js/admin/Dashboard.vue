@@ -3,7 +3,8 @@
     <div class="text-center mb-4">
       <h1 class="h3 mb-2">Bienvenid@, {{ userName }}</h1>
       <p class="text-muted mb-0">
-        Jerarquía fija: Fondo → Sección → Serie → Expediente. Elija niveles con casillas (sin Ctrl) y los tipos de expediente a mostrar.
+        Jerarquía: Fondo → (Subfondo) → Sección → Serie → (Subserie) → Expediente.
+        Subfondo y subserie son opcionales. Elija niveles con casillas y los tipos de expediente a mostrar.
       </p>
     </div>
 
@@ -51,6 +52,20 @@
             <div class="form-text">Vacío = todos los fondos de su alcance.</div>
           </div>
           <div class="col-md-4">
+            <label class="form-label">Subfondos <span class="text-muted fw-normal">(opcional)</span></label>
+            <button
+              type="button"
+              class="btn btn-outline-primary w-100 text-start"
+              :disabled="!idsFondos.length"
+              @click="abrirModal('subfondos')"
+            >
+              {{ resumenSubfondos }}
+            </button>
+            <div class="form-text">
+              {{ idsFondos.length ? 'Vacío = todas las rutas bajo los fondos.' : 'Primero elija fondo(s).' }}
+            </div>
+          </div>
+          <div class="col-md-4">
             <label class="form-label">Secciones</label>
             <button
               type="button"
@@ -61,7 +76,7 @@
               {{ resumenSecciones }}
             </button>
             <div class="form-text">
-              {{ idsFondos.length ? 'Solo de los fondos elegidos.' : 'Primero elija fondo(s).' }}
+              {{ textoAyudaSecciones }}
             </div>
           </div>
           <div class="col-md-4">
@@ -76,6 +91,20 @@
             </button>
             <div class="form-text">
               {{ idsSecciones.length ? 'Solo de las secciones elegidas. Vacío = todas.' : 'Primero elija sección(es).' }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Subseries <span class="text-muted fw-normal">(opcional)</span></label>
+            <button
+              type="button"
+              class="btn btn-outline-primary w-100 text-start"
+              :disabled="!idsSeries.length"
+              @click="abrirModal('subseries')"
+            >
+              {{ resumenSubseries }}
+            </button>
+            <div class="form-text">
+              {{ idsSeries.length ? 'Vacío = todas (incluye sin subserie).' : 'Primero elija serie(s).' }}
             </div>
           </div>
         </div>
@@ -198,11 +227,15 @@ export default {
       ],
       estados: ['en_tramite'],
       idsFondos: [],
+      idsSubfondos: [],
       idsSecciones: [],
       idsSeries: [],
+      idsSubseries: [],
       fondos: [],
+      subfondos: [],
       secciones: [],
       series: [],
+      subseries: [],
       tipoGrafica: 'pie',
       labels: [],
       data: [],
@@ -223,27 +256,48 @@ export default {
       return !!this.modalNivel
     },
     modalTitulo() {
-      if (this.modalNivel === 'fondos') return 'Seleccionar fondos'
-      if (this.modalNivel === 'secciones') return 'Seleccionar secciones'
-      if (this.modalNivel === 'series') return 'Seleccionar series'
-      return ''
+      const titulos = {
+        fondos: 'Seleccionar fondos',
+        subfondos: 'Seleccionar subfondos (opcional)',
+        secciones: 'Seleccionar secciones',
+        series: 'Seleccionar series',
+        subseries: 'Seleccionar subseries (opcional)',
+      }
+      return titulos[this.modalNivel] || ''
     },
     modalOpciones() {
-      if (this.modalNivel === 'fondos') return this.fondos
-      if (this.modalNivel === 'secciones') return this.secciones
-      if (this.modalNivel === 'series') return this.series
-      return []
+      const map = {
+        fondos: this.fondos,
+        subfondos: this.subfondos,
+        secciones: this.secciones,
+        series: this.series,
+        subseries: this.subseries,
+      }
+      return map[this.modalNivel] || []
     },
     resumenFondos() {
       return this.resumenSeleccion(this.idsFondos, this.fondos, 'Todos los fondos')
     },
+    resumenSubfondos() {
+      if (!this.idsFondos.length) return 'Elija primero fondo(s)'
+      return this.resumenSeleccion(this.idsSubfondos, this.subfondos, 'Todas las rutas (opcional)')
+    },
     resumenSecciones() {
       if (!this.idsFondos.length) return 'Elija primero fondo(s)'
-      return this.resumenSeleccion(this.idsSecciones, this.secciones, 'Todas las secciones de los fondos')
+      return this.resumenSeleccion(this.idsSecciones, this.secciones, 'Todas las secciones disponibles')
     },
     resumenSeries() {
       if (!this.idsSecciones.length) return 'Elija primero sección(es)'
       return this.resumenSeleccion(this.idsSeries, this.series, 'Todas las series de las secciones')
+    },
+    resumenSubseries() {
+      if (!this.idsSeries.length) return 'Elija primero serie(s)'
+      return this.resumenSeleccion(this.idsSubseries, this.subseries, 'Todas (incluye sin subserie)')
+    },
+    textoAyudaSecciones() {
+      if (!this.idsFondos.length) return 'Primero elija fondo(s).'
+      if (this.idsSubfondos.length) return 'Solo de los subfondos elegidos.'
+      return 'Directas del fondo y vía subfondos.'
     },
     tieneDatos() {
       return this.total > 0 && this.labels.length > 0
@@ -280,9 +334,14 @@ export default {
     },
     abrirModal(nivel) {
       this.modalNivel = nivel
-      if (nivel === 'fondos') this.modalDraft = [...this.idsFondos]
-      if (nivel === 'secciones') this.modalDraft = [...this.idsSecciones]
-      if (nivel === 'series') this.modalDraft = [...this.idsSeries]
+      const draftMap = {
+        fondos: this.idsFondos,
+        subfondos: this.idsSubfondos,
+        secciones: this.idsSecciones,
+        series: this.idsSeries,
+        subseries: this.idsSubseries,
+      }
+      this.modalDraft = [...(draftMap[nivel] || [])]
     },
     cerrarModal() {
       this.modalNivel = null
@@ -291,6 +350,25 @@ export default {
     modalSeleccionarTodo() {
       this.modalDraft = this.modalOpciones.map((i) => String(i.id))
     },
+    limpiarDesdeSubfondos() {
+      this.idsSubfondos = []
+      this.subfondos = []
+      this.limpiarDesdeSecciones()
+    },
+    limpiarDesdeSecciones() {
+      this.idsSecciones = []
+      this.secciones = []
+      this.limpiarDesdeSeries()
+    },
+    limpiarDesdeSeries() {
+      this.idsSeries = []
+      this.series = []
+      this.limpiarDesdeSubseries()
+    },
+    limpiarDesdeSubseries() {
+      this.idsSubseries = []
+      this.subseries = []
+    },
     async aplicarModal() {
       const nivel = this.modalNivel
       const draft = [...this.modalDraft]
@@ -298,10 +376,18 @@ export default {
 
       if (nivel === 'fondos') {
         this.idsFondos = draft
-        this.idsSecciones = []
-        this.idsSeries = []
-        this.series = []
-        this.secciones = []
+        this.limpiarDesdeSubfondos()
+        if (this.idsFondos.length) {
+          await this.cargarSubfondos()
+          await this.cargarSecciones()
+        }
+        await this.cargarEstadisticas()
+        return
+      }
+
+      if (nivel === 'subfondos') {
+        this.idsSubfondos = draft
+        this.limpiarDesdeSecciones()
         if (this.idsFondos.length) {
           await this.cargarSecciones()
         }
@@ -311,8 +397,7 @@ export default {
 
       if (nivel === 'secciones') {
         this.idsSecciones = draft
-        this.idsSeries = []
-        this.series = []
+        this.limpiarDesdeSeries()
         if (this.idsSecciones.length) {
           await this.cargarSeries()
         }
@@ -322,6 +407,16 @@ export default {
 
       if (nivel === 'series') {
         this.idsSeries = draft
+        this.limpiarDesdeSubseries()
+        if (this.idsSeries.length) {
+          await this.cargarSubseries()
+        }
+        await this.cargarEstadisticas()
+        return
+      }
+
+      if (nivel === 'subseries') {
+        this.idsSubseries = draft
         await this.cargarEstadisticas()
       }
     },
@@ -336,15 +431,19 @@ export default {
       const params = new URLSearchParams()
       appendArray(params, 'estados', this.estados)
       if (this.idsFondos.length) appendArray(params, 'id_fondos', this.idsFondos)
+      if (this.idsSubfondos.length) appendArray(params, 'id_subfondos', this.idsSubfondos)
       if (this.idsSecciones.length) appendArray(params, 'id_secciones', this.idsSecciones)
       if (this.idsSeries.length) appendArray(params, 'id_series', this.idsSeries)
+      if (this.idsSubseries.length) appendArray(params, 'id_subseries', this.idsSubseries)
       return params
     },
     bodyFiltros() {
       const body = { estados: [...this.estados] }
       if (this.idsFondos.length) body.id_fondos = this.idsFondos.map(Number)
+      if (this.idsSubfondos.length) body.id_subfondos = this.idsSubfondos.map(Number)
       if (this.idsSecciones.length) body.id_secciones = this.idsSecciones.map(Number)
       if (this.idsSeries.length) body.id_series = this.idsSeries.map(Number)
+      if (this.idsSubseries.length) body.id_subseries = this.idsSubseries.map(Number)
       return body
     },
     async onEstadosChange() {
@@ -365,12 +464,40 @@ export default {
         this.fondos = []
       }
     },
+    async cargarSubfondos() {
+      if (!this.idsFondos.length) {
+        this.subfondos = []
+        return
+      }
+      try {
+        const batches = await Promise.all(
+          this.idsFondos.map((fid) => axios.get(`/fondos/${fid}/subfondos`))
+        )
+        this.subfondos = this.uniqueById(
+          batches.flatMap((r) => (Array.isArray(r.data) ? r.data : []))
+        )
+      } catch (_) {
+        this.subfondos = []
+      }
+    },
     async cargarSecciones() {
       if (!this.idsFondos.length) {
         this.secciones = []
         return
       }
       try {
+        // Con subfondos elegidos: solo secciones de esos subfondos.
+        if (this.idsSubfondos.length) {
+          const batches = await Promise.all(
+            this.idsSubfondos.map((sfid) => axios.get(`/subfondos/${sfid}/secciones`))
+          )
+          this.secciones = this.uniqueById(
+            batches.flatMap((r) => (Array.isArray(r.data) ? r.data : []))
+          )
+          return
+        }
+
+        // Sin subfondos: secciones directas del fondo + vía todos sus subfondos.
         const batches = await Promise.all(this.idsFondos.map(async (fid) => {
           const [direct, subfondosRes] = await Promise.all([
             axios.get(`/fondos/${fid}/secciones`),
@@ -404,6 +531,32 @@ export default {
         )
       } catch (_) {
         this.series = []
+      }
+    },
+    async cargarSubseries() {
+      if (!this.idsSeries.length) {
+        this.subseries = []
+        return
+      }
+      try {
+        const batches = await Promise.all(
+          this.idsSeries.map(async (sid) => {
+            const items = []
+            let page = 1
+            let lastPage = 1
+            do {
+              const { data } = await axios.get(`/series/${sid}/subseries`, { params: { page } })
+              const chunk = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : [])
+              items.push(...chunk)
+              lastPage = Number(data?.last_page || 1)
+              page += 1
+            } while (page <= lastPage)
+            return items
+          })
+        )
+        this.subseries = this.uniqueById(batches.flat())
+      } catch (_) {
+        this.subseries = []
       }
     },
     async cargarEstadisticas() {

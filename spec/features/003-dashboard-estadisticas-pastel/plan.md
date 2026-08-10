@@ -6,64 +6,77 @@ _Cómo se implementa lo descrito en `spec.md`. Debe respetar la `constitution/`.
 
 ## Enfoque
 
-Extender el **dashboard de inicio** (`Dashboard.vue`) con:
+Extender el **dashboard de inicio** (`Dashboard.vue`) con estadísticas de expedientes (MySQL/Eloquent), multi-filtro de catálogo y PDF DomPDF.
 
-- Modo **Expedientes** (un estado a la vez: trámite | concentración | histórico) o **Series creadas**.
-- Cascada de catálogo con **regla de nivel**: Fondo → (Subfondo) → Sección → Serie (específica o todas).
-- Agrupación automática al **siguiente nivel** no fijado (p. ej. con sección y “todas las series” → pastel por serie).
-- Tipo de gráfica Chart.js: *pie*, *bar*, *polarArea*.
-- PDF DomPDF: encabezado oficial + imagen de la gráfica.
+La cascada de filtros sigue la jerarquía real **sin modificar el catálogo**:
 
-Agregaciones en **MySQL/Eloquent** con alcance por dependencia/departamento (`root` = global). Sin MongoDB, sin migraciones, sin librerías nuevas.
+**Fondo → (Subfondo opcional) → Sección → Serie → (Subserie opcional).**
+
+Agregaciones con alcance por dependencia/departamento (`root` = global). Sin MongoDB, sin migraciones, sin librerías nuevas.
 
 ## Hallazgos de investigación
 
-- Inicio: `GET /dashboard` → `UsersController::dashboard` → `Dashboard.vue` (solo saludo).
-- Chart.js / `vue-chartjs` ya en el stack; hoy `StatisticsChart.vue` solo usa Bar. Hay que registrar elementos para Pie / PolarArea / Bar según el tipo elegido.
-- PDF de referencia: `resources/views/pdf/expedientes.blade.php` — logos `escudo.png` / `gobierno.png`, título institucional, fecha.
-- Alcance: patrón `ExpedienteController` (root vs `id_dependencia` + `id_departamento`).
-- Legacy Mongo `/estadisticas`: no tocar.
+- Inicio: `GET /dashboard` → `UsersController::dashboard` → `Dashboard.vue`.
+- Chart.js / `vue-chartjs` ya en el stack (`DashboardStatsChart.vue`).
+- PDF: `resources/views/pdf/dashboard-estadisticas.blade.php` + rutas JSON/PDF en `DashboardStatsController`.
+- **Gap actual:** UI y validación solo exponen Fondo / Sección / Serie. El copy dice “Fondo → Sección → Serie”. Subfondo no entra en filtros ni en `agrupar_por`. Subserie existe en `AGRUPACIONES` del controller pero la resolución automática **no** la usa (con series → agrupa por `serie`).
+- Secciones: `id_fondo` siempre poblado; `id_subfondo` nullable. `FondoController::secciones` = directas (`id_subfondo` null); `SubfondoController::secciones` = bajo subfondo. Patrón UI de referencia: `CaratulaV2.vue` (selectores opcionales).
+- Join actual `secciones.id_fondo` sigue válido para filtrar por fondo (también en secciones bajo subfondo). Falta filtrar por `id_subfondos` / `id_subseries` y validar pertenencia.
 
 ## Archivos afectados
 
 | Archivo | Tipo de cambio |
 |---|---|
-| `routes/web.php` | modificar — JSON stats + PDF |
-| `app/Http/Controllers/DashboardStatsController.php` | nuevo — agregaciones + PDF |
-| `resources/views/pdf/dashboard-estadisticas.blade.php` | nuevo — header tipo inventario + `<img>` de la gráfica |
-| `resources/js/admin/Dashboard.vue` | modificar — filtros, tipo de chart, descarga |
-| `resources/js/components/DashboardStatsChart.vue` (orientativo) | nuevo — renderiza pie / bar / polarArea según prop |
-| `resources/js/app.js` | solo si hace falta registro global |
-| `EstadisticasController` / Mongo | **no tocar** |
+| `routes/web.php` | sin cambio de rutas (mismos endpoints; contrato de query/body ampliado) |
+| `app/Http/Controllers/DashboardStatsController.php` | modificar — validar/filtrar/agrupar subfondo y subserie; resumen de filtro |
+| `resources/js/admin/Dashboard.vue` | modificar — modales Subfondo y Subserie; cascada; copy de jerarquía; params API |
+| `resources/js/components/DashboardStatsChart.vue` | sin cambio esperado |
+| `resources/views/pdf/dashboard-estadisticas.blade.php` | sin cambio esperado (usa labels del backend) |
+| `EstadisticasController` / Mongo / migraciones | **no tocar** |
 
 ## Implementación
 
-1. **Backend — alcance** sobre consultas de `Expediente` / bajas: no-root filtra dependencia + departamento; `root` sin filtro.
-2. **`GET` JSON** `/dashboard/estadisticas?dimension=...` → labels, data, total, alcance.
-3. **`POST` PDF** `/dashboard/estadisticas/pdf` con: `dimension`, `tipo_grafica`, `titulo` (o construido en servidor), `chart_image` (base64 **obligatorio**). DomPDF: header + imagen a ancho útil de página.
-4. **Frontend:** selectores de dimensión y tipo; componente de chart que cambie entre Pie / Bar / PolarArea; al descargar, exportar canvas → POST → blob PDF.
-5. Validar UI vacía/error y PDF con logos + gráfica correcta para cada tipo.
+1. **Backend — validación** — aceptar `id_subfondos[]` e `id_subseries[]`; reglas de cascada:
+   - subfondos requieren fondos y deben pertenecer a esos fondos;
+   - secciones requieren fondos; si hay subfondos elegidos, cada sección debe tener `id_subfondo` ∈ elegidos; si no hay subfondos, la sección debe pertenecer a los fondos (`id_fondo` ∈ fondos);
+   - series requieren secciones (como hoy);
+   - subseries requieren series y deben pertenecer a esas series.
+2. **Backend — filtro de expedientes** — además de fondos/secciones/series:
+   - si `id_subfondos` no vacío → `whereIn(secciones.id_subfondo, …)`;
+   - si `id_subseries` no vacío → `whereIn(expedientes.id_subserie, …)`;
+   - si vacíos, no excluir expedientes sin subfondo/subserie.
+3. **Backend — agrupación automática** — subserie/subfondo solo si el usuario los eligió; con series (1+) → `serie`; con subfondos → `subfondo`; secciones → `serie`; fondos → `seccion`; vacío → `fondo`.
+4. **Backend — resumen** — incluir nombres de subfondos/subseries en `filtro_resumen` / título cuando aplique.
+5. **Frontend — cascada** — dos botones/modales nuevos (misma UX de checkboxes):
+   - Subfondos: habilitado con ≥1 fondo; carga `GET /fondos/{id}/subfondos` por cada fondo;
+   - Secciones: si hay subfondos → solo `GET /subfondos/{id}/secciones`; si no → unión de secciones directas del fondo + secciones de todos sus subfondos (comportamiento ya parcialmente presente);
+   - Series: como hoy;
+   - Subseries: habilitado con ≥1 serie; carga `GET /series/{id}/subseries`.
+6. Al cambiar fondos, limpiar subfondos/secciones/series/subseries; al cambiar subfondos, limpiar secciones→…; al cambiar series, limpiar subseries.
+7. Enviar `id_subfondos` / `id_subseries` en JSON y PDF; actualizar texto de ayuda a la jerarquía completa con opcionales.
+8. Validar UI vacía/error, conteos con/sin nivel opcional, PDF intacto.
 
 ## Decisiones
 
 - **MySQL, no Mongo** — pedido explícito + constitución.
-- **Contenido del PDF = gráfica (imagen)** — no basta una tabla como sustituto; el usuario elige el tipo y eso debe verse en el PDF. Una tabla auxiliar bajo la imagen es opcional (no requerida por producto).
-- **POST con base64** — DomPDF no ejecuta Chart.js; el front captura el canvas. Mitigar tamaño (JPEG/PNG razonable, ancho acotado).
-- **Tres tipos Chart.js** — pie, bar, polarArea; sin otras variantes en v1.
-- **Filtro = dimensión completa de v1** — ciclo vital, bajas, fondo, sección, serie, subserie (todo lo acordado para expedientes/catálogo en esta feature).
-- **`root` = global**; no selector de otra dependencia en v1.
-- **Título del PDF** — debe dejar claro que es estadísticas del sistema/AG y la dimensión (y tipo) aplicada, no copiar literal “INVENTARIO GENERAL DE ARCHIVO” salvo que producto lo pida; la **estructura visual** del header sí se copia.
+- **No se modifica la jerarquía del catálogo** — solo se completa el filtro/agrupación para respetar niveles opcionales ya existentes.
+- **Subfondo y Subserie opcionales en UI** — multi-select; vacío = “todas las rutas / incluir sin ese nivel”.
+- **Agrupación: opcionales solo si se eligen** — con series (aunque sea una) → por serie; por subserie solo si marcó subseries. Con subfondos → por subfondo; no se salta solo a ese nivel.
+- **Contenido del PDF = gráfica (imagen)** — POST base64; DomPDF no ejecuta Chart.js.
+- **Tres tipos Chart.js** — pie, bar, polarArea.
+- **`root` = global**; sin selector de otra dependencia.
 
 ## Riesgos
 
-- **Base64 grande / canvas vacío** — validar en servidor que venga imagen; si falla, 422 con mensaje en español; no generar PDF solo con header vacío.
-- **Muchos segmentos** — pastel/polar ilegible; ordenar por conteo; valorar top N + “Otros” en implementación.
-- **Expedientes sin clasificar** — bucket “Sin clasificar”.
-- **Usuario sin dependencia/departamento** (no-root) — 403 o vacío explícito, nunca datos globales.
-- **PolarArea / Pie con un solo valor** — Chart.js lo soporta; probar visualmente.
+- **Validación sección ↔ fondo/subfondo** — no asumir solo `id_fondo`; si hay `id_subfondos`, exigir pertenencia al subfondo.
+- **Base64 grande / canvas vacío** — 422 en español.
+- **Muchos segmentos** — top N + «Otros» (ya existe).
+- **Usuario sin dependencia/departamento** (no-root) — 403 o vacío, nunca datos globales.
+- **Endpoints de subseries** — confirmar forma de respuesta (`data` vs array plano) como en Carátula v2.
 
 ## Impacto en datos / permisos
 
 - Sin migraciones ni Mongo.
 - Sin roles nuevos.
 - Solo lectura agregada acotada por pertenencia.
+- Contrato JSON/PDF ampliado con `id_subfondos` e `id_subseries` (retrocompatible si ausentes = vacío).
