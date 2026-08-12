@@ -576,83 +576,262 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ===== Paleta compartida ===== */
 .form-container {
+  --brand: #ab0a3d;
+  --brand-dark: #440412;
+  --gold: #b68400;
+  --bg: #f6f1ee;
+  --surface: #ffffff;
+  --surface-soft: #faf6f4;
+  --line: #e7d9dc;
+  --ink: #2a1015;
+  --ink-soft: #7a6a6d;
+  --ring: rgba(171, 10, 61, .18);
+
   position: relative;
   width: 100%;
   min-height: 100vh;
+  background:
+    radial-gradient(1200px 480px at 100% -10%, rgba(171, 10, 61, .06), transparent 60%),
+    radial-gradient(900px 420px at -10% 110%, rgba(182, 132, 0, .07), transparent 55%),
+    var(--bg);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--ink);
 }
 
 .caratula-background {
-  background-size: cover;
-  background-position: center;
-  padding: 40px;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 48px 24px 24px;
   position: relative;
-  color: #000;
+  color: var(--ink);
 }
 
+/* ===== Título ===== */
 h1 {
-  color: #000;
+  color: var(--brand-dark);
   text-align: center;
-  font-size: 2em;
-  margin-bottom: 30px;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  margin-bottom: 8px;
+  text-wrap: balance;
+}
+h1::after {
+  content: "";
+  display: block;
+  width: 72px;
+  height: 4px;
+  margin: 14px auto 32px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand), var(--gold));
 }
 
 .subtitulo {
-  text-align: center;
-  font-size: 1.5em;
-  font-weight: bold;
-  margin-bottom: 20px;
+  display: block;
+  text-align: left;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--brand-dark);
+  padding-left: 12px;
+  border-left: 3px solid var(--gold);
+  margin-bottom: 6px;
 }
 
+/* ===== Tarjetas / formularios ===== */
 .caratula-form {
-  background: rgba(255, 255, 255, 0.7);
-  padding: 40px;
-  border-radius: 8px;
-  max-width: 8000px;
-  margin: 0 auto;
-  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  background: var(--surface);
+  padding: 32px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  max-width: 100%;
+  margin: 0 auto 24px;
+  box-shadow: 0 12px 30px rgba(68, 4, 18, .07);
 }
 
+/* Selector de expediente destacado */
 .selector-expediente {
-  border: 1px dashed #6969f4;
+  position: relative;
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--brand);
+  background: var(--surface-soft);
+  overflow: hidden;
 }
 
 .selector-titulo {
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--brand-dark);
+  margin-bottom: .5rem;
 }
 
-.selector-ayuda {
-  font-size: 0.95rem;
+.selector-ayuda,
+.text-muted {
+  font-size: .9rem;
+  color: var(--ink-soft) !important;
   margin-bottom: 1rem;
+  line-height: 1.55;
 }
+
+/* Etiquetas */
+label {
+  display: block;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--brand-dark);
+  margin-bottom: 2px;
+  letter-spacing: .01em;
+}
+.fw-semibold { font-weight: 700; }
 
 .form-row {
   display: block;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .form-group {
   width: 100%;
 }
 
+/* Campos */
 .form-control {
   width: 100%;
-  padding: 8px;
-  margin-top: 8px;
-  border-radius: 4px;
+  height: auto;
+  min-height: 44px;
+  padding: 10px 13px;
+  margin-top: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: .95rem;
+  line-height: 1.4;
+  box-sizing: border-box;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
-
-.btn {
-  margin-top: 20px;
+.form-control::placeholder { color: #b7a7aa; }
+.form-control:hover { border-color: #d9c4c8; }
+.form-control:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px var(--ring);
+  background: var(--surface);
 }
-
-.d-flex label {
-  margin-right: 10px;
+select.form-control {
+  cursor: pointer;
+  display: block;
+  padding: 10px 36px 10px 13px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23440412' d='M1.4.6 6 5.2 10.6.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 8px;
 }
+select.form-control:disabled {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237a6a6d' d='M1.4.6 6 5.2 10.6.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+}
+textarea.form-control { resize: vertical; min-height: 84px; }
 
-.campo-solo-lectura:disabled {
-  background-color: #e9ecef;
+.campo-solo-lectura:disabled,
+.form-control:disabled {
+  background-color: var(--surface-soft);
+  color: var(--ink-soft);
+  border-style: dashed;
   cursor: not-allowed;
+}
+
+/* Lista de expedientes disponibles */
+.list-group {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.list-group-item {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: none;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background .12s ease;
+}
+.list-group-item:last-child { border-bottom: none; }
+.list-group-item:hover { background: var(--surface-soft); }
+.list-group-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+.list-group-item strong { color: var(--ink); font-size: .92rem; }
+.list-group-item small { color: var(--ink-soft); }
+
+/* ===== Botones ===== */
+.btn {
+  margin-top: 16px;
+  padding: 11px 22px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  font-size: .92rem;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .15s ease, filter .15s ease;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(171, 10, 61, .25);
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 12px 24px rgba(171, 10, 61, .32);
+}
+.btn-primary:active { transform: translateY(0); }
+
+/* El botón final Generar Carátula, más protagónico */
+form.caratula-form > .btn-primary {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  margin-top: 24px;
+}
+
+.d-flex label { margin-right: 10px; }
+
+/* Utilidades de espaciado usadas en la plantilla */
+.mb-4 { margin-bottom: 1.5rem; }
+.mb-3 { margin-bottom: 1rem; }
+.mb-2 { margin-bottom: .5rem; }
+.mt-2 { margin-top: .5rem; }
+.ms-2 { margin-left: .5rem; }
+.small { font-size: .82rem; }
+
+/* ===== Grilla responsive (respeta clases Bootstrap del template) ===== */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.row.g-3 { gap: 16px; }
+.col-12 { flex: 0 0 100%; max-width: 100%; }
+
+.col-md-4, .col-md-6 { flex: 1 1 100%; }
+
+@media (min-width: 768px) {
+  .col-md-4 { flex: 1 1 calc(33.333% - 16px); min-width: 220px; }
+  .col-md-6 { flex: 1 1 calc(50% - 16px); min-width: 220px; }
+}
+
+@media (max-width: 640px) {
+  .caratula-background { padding: 32px 14px 16px; }
+  .caratula-form { padding: 22px; }
+  h1 { font-size: 1.6rem; }
 }
 </style>
