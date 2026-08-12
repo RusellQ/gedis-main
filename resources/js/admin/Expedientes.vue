@@ -536,7 +536,7 @@ export default {
   --gold-soft: #faf1dd;
   --stone: #B0ABA1;
 
-  background: var(--bg);
+  background: transparent;
   min-height: 100vh;
   max-width: 1240px;
   margin: 0 auto;
@@ -601,7 +601,7 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem 1.25rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 /* Cada expediente es un folder físico */
@@ -609,6 +609,9 @@ export default {
   --folder-accent: var(--brand);
   position: relative;
   margin-top: 14px; /* espacio para la pestaña */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 .estado-en_tramite { --folder-accent: #AB0A3D; }
 .estado-en_concentracion { --folder-accent: #B68400; }
@@ -650,6 +653,10 @@ export default {
   border-radius: .2rem .95rem .95rem .95rem;
   box-shadow: 0 6px 16px rgba(68, 4, 18, .06);
   transition: box-shadow .18s ease, transform .18s ease;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 100%;
 }
 .folder-cover::-webkit-details-marker { display: none; }
 .folder-cover:hover {
@@ -659,6 +666,8 @@ export default {
 .folder[open] .folder-cover {
   border-radius: .2rem .95rem 0 0;
   box-shadow: 0 8px 18px rgba(68, 4, 18, .1);
+  flex: none;
+  min-height: 0;
 }
 
 .folder-cover-inner {
@@ -666,11 +675,14 @@ export default {
   display: flex;
   flex-direction: column;
   gap: .75rem;
+  flex: 1;
+  min-height: 11.5rem;
 }
 .folder-cover-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex: none;
 }
 .exp-badge { margin-bottom: 0; }
 
@@ -692,6 +704,8 @@ export default {
   display: flex;
   align-items: flex-start;
   gap: .7rem;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .folder-icon {
   flex: none;
@@ -703,7 +717,7 @@ export default {
   color: var(--folder-accent);
   background: color-mix(in srgb, var(--folder-accent) 12%, #fff);
 }
-.folder-heading { min-width: 0; }
+.folder-heading { min-width: 0; flex: 1; }
 
 /* Chips y etiqueta de apertura */
 .folder-cover-foot {
@@ -713,6 +727,8 @@ export default {
   gap: .4rem;
   border-top: 1px dashed var(--line);
   padding-top: .7rem;
+  margin-top: auto;
+  flex: none;
 }
 .folder-chip {
   font-size: .7rem;
@@ -722,6 +738,10 @@ export default {
   border: 1px solid var(--line);
   border-radius: .5rem;
   padding: .2rem .5rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .folder-open-label {
   margin-left: auto;
@@ -791,12 +811,25 @@ export default {
   font-size: 1.05rem;
   font-weight: 700;
   margin: 0 0 .25rem;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  min-height: calc(1.05rem * 1.3 * 2);
 }
 .exp-path {
   font-size: .78rem;
   color: var(--ink-soft);
-  margin: 0 0 1rem;
+  margin: 0;
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  min-height: calc(0.78rem * 1.4 * 2);
 }
 
 /* Panel de información visual de la serie */
