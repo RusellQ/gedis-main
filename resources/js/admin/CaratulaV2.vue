@@ -449,10 +449,7 @@ const aplicarDatosExpediente = (e) => {
   form.value.rubrica_titular = e.rubrica_titular_de_la_unidad || ''
   form.value.fecha_desclasificacion = e.fecha_desclasificacion || ''
 
-  const observaciones = [e.observacion, e.serie?.observaciones].filter(Boolean)
-  if (observaciones.length) {
-    form.value.observaciones = observaciones.join(' | ')
-  }
+  form.value.observaciones = e.observacion || ''
 }
 
 const cargarDatosSeleccionados = async () => {
@@ -518,9 +515,7 @@ const cargarDatosSeleccionados = async () => {
   if (aperturaUnica.size === 1) form.value.anio_apertura = [...aperturaUnica][0]
   if (cierreUnico.size === 1) form.value.anio_cierre = [...cierreUnico][0]
 
-  const obsSerie = data[0]?.serie?.observaciones
-  const todasObs = [...observaciones, obsSerie].filter(Boolean)
-  if (todasObs.length) form.value.observaciones = todasObs.join(' | ')
+  form.value.observaciones = observaciones.join(' | ')
 }
 
 const resetForm = () => {
