@@ -66,172 +66,150 @@
         </div>
       </div>
 
-      <form @submit.prevent="guardarCaratula" class="caratula-form">
+      <form @submit.prevent="guardarCaratula" class="caratula-form caratula-form--captura">
         <ReglasDocumentalesPanel
           :reglas="reglasDocumentales"
           :loading="cargandoReglas"
           empty-message="Seleccione una serie en el catálogo o cargue un expediente para ver las reglas documentales."
         />
 
-        <FormSectionHeader
-          title="Datos de su sesión"
-          badge="Automático"
-          badge-class="bg-info text-dark"
-          variant="session"
-          description="Información obtenida del usuario y su dependencia."
-        />
+        <section class="form-block form-block--session">
+          <FormSectionHeader
+            title="Datos de su sesión"
+            badge="Automático"
+            badge-class="bg-secondary"
+            variant="session"
+            description="Información obtenida del usuario y su dependencia."
+          />
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="nombreSujetoObligado">Sujeto Obligado</label>
-            <input type="text" id="nombreSujetoObligado" v-model="form.nombre_sujeto_obligado" class="form-control campo-solo-lectura" disabled>
+          <div class="field-grid">
+            <div class="form-group field-span-2">
+              <label for="nombreSujetoObligado">Sujeto Obligado</label>
+              <input type="text" id="nombreSujetoObligado" v-model="form.nombre_sujeto_obligado" class="form-control campo-solo-lectura" disabled>
+            </div>
+            <div class="form-group">
+              <label for="areaAdministrativa">Área Administrativa</label>
+              <input type="text" id="areaAdministrativa" v-model="form.area_administrativa" class="form-control campo-solo-lectura" disabled>
+            </div>
+            <div class="form-group">
+              <label for="areaGeneradora">Área Generadora</label>
+              <input type="text" id="areaGeneradora" v-model="form.area_generadora" class="form-control campo-solo-lectura" disabled>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="areaAdministrativa">Área Administrativa</label>
-            <input type="text" id="areaAdministrativa" v-model="form.area_administrativa" class="form-control campo-solo-lectura" disabled>
-          </div>
-        </div>
+        <section class="form-block form-block--capture">
+          <FormSectionHeader
+            title="Datos de la carátula a capturar"
+            badge="Captura manual"
+            badge-class="bg-warning text-dark"
+            variant="capture"
+            description="Complete estos campos con la información específica del expediente."
+          />
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="areaGeneradora">Área Generadora</label>
-            <input type="text" id="areaGeneradora" v-model="form.area_generadora" class="form-control campo-solo-lectura" disabled>
-          </div>
-        </div>
+          <div class="field-grid">
+            <div class="form-group">
+              <label for="noConsecutivo">No. Consecutivo</label>
+              <input type="number" id="noConsecutivo" v-model="form.no_consecutivo" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="soporteDocumental">Soporte Documental</label>
+              <select id="soporteDocumental" v-model="form.soporte_documental" class="form-control" required>
+                <option value="Físico">Físico</option>
+                <option value="Electrónico">Electrónico</option>
+              </select>
+            </div>
 
-        <FormSectionHeader
-          title="Datos de la carátula a capturar"
-          badge="Captura manual"
-          description="Complete estos campos con la información específica del expediente."
-        />
+            <div class="form-group field-span-2">
+              <label for="codigoClasificacionArchivistica">Código de Clasificación Archivística</label>
+              <input type="text" id="codigoClasificacionArchivistica" v-model="form.codigo_clasificacion_archivistica" class="form-control" required>
+            </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="noConsecutivo">No. Consecutivo</label>
-            <input type="number" id="noConsecutivo" v-model="form.no_consecutivo" class="form-control" required>
-          </div>
-        </div>
+            <div class="form-group field-span-2">
+              <span class="field-group-label">Fechas Extremas</span>
+              <div class="field-grid field-grid--nested">
+                <div class="form-group">
+                  <label for="anoApertura">Año de apertura</label>
+                  <input type="number" id="anoApertura" v-model="form.anio_apertura" class="form-control" required>
+                </div>
+                <div class="form-group">
+                  <label for="anoCierre">Año de cierre</label>
+                  <input type="number" id="anoCierre" v-model="form.anio_cierre" class="form-control" required>
+                </div>
+              </div>
+            </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="codigoClasificacionArchivistica">Código de Clasificación Archivística</label>
-            <input type="text" id="codigoClasificacionArchivistica" v-model="form.codigo_clasificacion_archivistica" class="form-control" required>
-          </div>
-        </div>
+            <div class="form-group field-span-2">
+              <label for="tituloExpediente">Título del Expediente</label>
+              <input type="text" id="tituloExpediente" v-model="form.titulo_expediente" class="form-control" required>
+            </div>
 
-        <div class="form-row">
-          <div class="form-group col-12">
-            <label for="fechasExtremas">Fechas Extremas</label>
-          </div>
-          <div class="form-group col-md-6">
-            <label for="anoApertura">Año de apertura</label>
-            <input type="number" id="anoApertura" v-model="form.anio_apertura" class="form-control" required>
-          </div>
-          <div class="form-group col-md-6">
-            <label for="anoCierre">Año de cierre</label>
-            <input type="number" id="anoCierre" v-model="form.anio_cierre" class="form-control" required>
-          </div>
-        </div>
+            <div class="form-group field-span-2">
+              <label for="descripcionAsuntoExpediente">Descripción del Asunto que Trata el Expediente</label>
+              <input type="text" id="descripcionAsuntoExpediente" v-model="form.descripcion_asunto_expediente" class="form-control" required>
+            </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="soporteDocumental">Soporte Documental</label>
-            <select id="soporteDocumental" v-model="form.soporte_documental" class="form-control" required>
-              <option value="Físico">Físico</option>
-              <option value="Electrónico">Electrónico</option>
-            </select>
-          </div>
-        </div>
+            <div class="form-group field-span-2">
+              <label for="ubicacionTopografica">Ubicación Topográfica</label>
+              <input type="text" id="ubicacionTopografica" v-model="form.ubicacion_topografica" class="form-control campo-solo-lectura" disabled>
+            </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="tituloExpediente">Título del Expediente</label>
-            <input type="text" id="tituloExpediente" v-model="form.titulo_expediente" class="form-control" required>
+            <div class="form-group">
+              <label for="noLegajo">No. de Legajo</label>
+              <input type="number" id="noLegajo" v-model="form.no_legajo" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="noFojas">No. de Fojas</label>
+              <input type="number" id="noFojas" v-model="form.no_fojas" class="form-control" required>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="descripcionAsuntoExpediente">Descripción del Asunto que Trata el Expediente</label>
-            <input type="text" id="descripcionAsuntoExpediente" v-model="form.descripcion_asunto_expediente" class="form-control" required>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="ubicacionTopografica">Ubicación Topográfica</label>
-            <input type="text" id="ubicacionTopografica" v-model="form.ubicacion_topografica" class="form-control campo-solo-lectura" disabled>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="noLegajo">No. de Legajo</label>
-            <input type="number" id="noLegajo" v-model="form.no_legajo" class="form-control" required>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="noFojas">No. de Fojas</label>
-            <input type="number" id="noFojas" v-model="form.no_fojas" class="form-control" required>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
+        <section class="form-block form-block--reservada">
+          <div class="reservada-head">
             <label class="subtitulo">Información Reservada y/o Confidencial</label>
-            <p class="text-muted small mb-2">La clasificación, fundamento legal y periodo de reserva se muestran arriba en las reglas del catálogo. Aquí capture los datos operativos del expediente.</p>
+            <p class="text-muted small mb-0">
+              La clasificación, fundamento legal y periodo de reserva se muestran arriba en las reglas del catálogo.
+              Aquí capture los datos operativos del expediente.
+            </p>
           </div>
-        </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="informacionReservada">Información reservada y/o confidencial</label>
-            <input type="text" id="informacionReservada" v-model="form.informacion_reservada_y_o_confidencial" class="form-control">
+          <div class="field-grid">
+            <div class="form-group field-span-2">
+              <label for="informacionReservada">Información reservada y/o confidencial</label>
+              <input type="text" id="informacionReservada" v-model="form.informacion_reservada_y_o_confidencial" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="fechaClasificacion">Fecha de Clasificación</label>
+              <input type="date" id="fechaClasificacion" v-model="form.fecha_clasificacion" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="fechaDesclasificacion">Fecha de Desclasificación</label>
+              <input type="date" id="fechaDesclasificacion" v-model="form.fecha_desclasificacion" class="form-control">
+            </div>
+            <div class="form-group field-span-2">
+              <label for="aplicacionPeriodoReserva">Aplicación del Periodo de Reserva</label>
+              <input type="text" id="aplicacionPeriodoReserva" v-model="form.aplicacion_periodo_reserva" class="form-control" required>
+            </div>
+            <div class="form-group field-span-2">
+              <label for="rubricaTitularUnidadAdministrativa">Rubrica del Titular de la Unidad Administrativa</label>
+              <input type="text" id="rubricaTitularUnidadAdministrativa" v-model="form.rubrica_titular" class="form-control" required>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="fechaClasificacion">Fecha de Clasificación</label>
-            <input type="date" id="fechaClasificacion" v-model="form.fecha_clasificacion" class="form-control" required>
+        <section class="form-block form-block--cierre">
+          <div class="field-grid">
+            <div class="form-group field-span-2">
+              <label for="observaciones">Observaciones</label>
+              <textarea id="observaciones" v-model="form.observaciones" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="form-group field-span-2">
+              <label for="capturador">Capturador</label>
+              <input type="text" id="capturador" v-model="form.capturador" class="form-control campo-solo-lectura" disabled>
+            </div>
           </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="aplicacionPeriodoReserva">Aplicación del Periodo de Reserva</label>
-            <input type="text" id="aplicacionPeriodoReserva" v-model="form.aplicacion_periodo_reserva" class="form-control" required>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="rubricaTitularUnidadAdministrativa">Rubrica del Titular de la Unidad Administrativa</label>
-            <input type="text" id="rubricaTitularUnidadAdministrativa" v-model="form.rubrica_titular" class="form-control" required>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="fechaDesclasificacion">Fecha de Desclasificación</label>
-            <input type="date" id="fechaDesclasificacion" v-model="form.fecha_desclasificacion" class="form-control">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="observaciones">Observaciones</label>
-          <textarea id="observaciones" v-model="form.observaciones" class="form-control" rows="3"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="capturador">Capturador</label>
-          <input type="text" id="capturador" v-model="form.capturador" class="form-control campo-solo-lectura" disabled>
-        </div>
+        </section>
 
         <button type="submit" class="btn btn-primary">
           <span>Generar Carátula</span>
@@ -587,10 +565,7 @@ onMounted(() => {
   position: relative;
   width: 100%;
   min-height: 100vh;
-  background:
-    radial-gradient(1200px 480px at 100% -10%, rgba(171, 10, 61, .06), transparent 60%),
-    radial-gradient(900px 420px at -10% 110%, rgba(182, 132, 0, .07), transparent 55%),
-    var(--bg);
+  background: transparent;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: var(--ink);
 }
@@ -645,12 +620,76 @@ h1::after {
   box-shadow: 0 12px 30px rgba(68, 4, 18, .07);
 }
 
+.caratula-form--captura {
+  border-top: 4px solid var(--brand);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+/* Bloques de sección del formulario */
+.form-block {
+  padding: 1.1rem 1.15rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: transparent;
+}
+
+.form-block--session {
+  background: transparent;
+}
+
+.form-block--capture {
+  background: transparent;
+}
+
+.form-block--reservada {
+  border-left: 4px solid var(--gold);
+  background: transparent;
+}
+
+.form-block--cierre {
+  background: transparent;
+}
+
+.reservada-head {
+  margin-bottom: 1rem;
+}
+
+.field-group-label {
+  display: block;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--brand-dark);
+  margin-bottom: .35rem;
+  letter-spacing: .01em;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem 1.1rem;
+}
+
+.field-grid--nested {
+  gap: .85rem 1rem;
+}
+
+@media (min-width: 720px) {
+  .field-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .field-span-2 {
+    grid-column: 1 / -1;
+  }
+}
+
 /* Selector de expediente destacado */
 .selector-expediente {
   position: relative;
   border: 1px solid var(--line);
   border-top: 4px solid var(--brand);
-  background: var(--surface-soft);
+  background: var(--surface);
   overflow: hidden;
 }
 
@@ -687,6 +726,11 @@ label {
 
 .form-group {
   width: 100%;
+  margin-bottom: 0;
+}
+
+.form-block .form-group label {
+  margin-bottom: 0;
 }
 
 /* Campos */
@@ -795,7 +839,8 @@ form.caratula-form > .btn-primary {
   width: 100%;
   padding: 14px;
   font-size: 1rem;
-  margin-top: 24px;
+  margin-top: 8px;
+  letter-spacing: .01em;
 }
 
 .d-flex label { margin-right: 10px; }

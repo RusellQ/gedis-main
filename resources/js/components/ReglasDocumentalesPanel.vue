@@ -97,11 +97,22 @@ defineProps({
 
 <style scoped>
 .reglas-documentales-panel {
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  padding: 1rem;
-  background: #f8f9fa;
+  --brand: #ab0a3d;
+  --brand-dark: #440412;
+  --gold: #b68400;
+  --line: #e7d9dc;
+  --ink: #2a1015;
+  --ink-soft: #7a6a6d;
+  --surface: #ffffff;
+  --surface-soft: #faf6f4;
+
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--gold);
+  border-radius: 14px;
+  padding: 1.15rem;
+  background: var(--surface-soft);
   margin-bottom: 1.5rem;
+  box-shadow: 0 8px 20px rgba(68, 4, 18, 0.05);
 }
 
 .reglas-grid {
@@ -114,10 +125,10 @@ defineProps({
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  padding: 0.6rem 0.75rem;
-  background: #fff;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
+  padding: 0.7rem 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
 }
 
 .regla-item--full {
@@ -125,22 +136,33 @@ defineProps({
 }
 
 .regla-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #6c757d;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--brand-dark);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
 }
 
 .regla-value {
-  font-size: 0.95rem;
-  color: #212529;
+  font-size: 0.94rem;
+  color: var(--ink);
+  font-weight: 500;
 }
 
 .regla-origen {
   align-self: flex-start;
   font-size: 0.68rem;
   font-weight: 500;
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
+  background: #f3eeec !important;
+  color: var(--ink-soft) !important;
+  border-color: var(--line) !important;
+}
+
+.reglas-documentales-panel :deep(.alert-warning) {
+  background: rgba(182, 132, 0, 0.1);
+  border: 1px solid rgba(182, 132, 0, 0.28);
+  color: var(--brand-dark);
+  border-radius: 10px;
 }
 </style>
