@@ -1,301 +1,275 @@
 <template>
-  <div>
-    <h1>Consultar Documentos</h1>
+  <div class="consultar-page">
+    <header class="page-head">
+      <div>
+        <h1 class="page-title">Consultar carátulas</h1>
+        <p class="page-sub">Consulte, descargue y gestione las carátulas de expediente ya generadas.</p>
+      </div>
+      <div class="head-actions">
+        <div class="search-box">
+          <span class="search-ico" aria-hidden="true">⌕</span>
+          <input
+            v-model="palabraClave"
+            type="search"
+            placeholder="Buscar carátula..."
+            class="search-input"
+            aria-label="Buscar carátula"
+            @input="paginaActual = 1"
+          >
+        </div>
+        <button type="button" class="btn-blank" @click="descargarCaratulaEnBlanco">
+          Descargar carátula en blanco
+        </button>
+      </div>
+    </header>
 
-    <!-- Formulario de Búsqueda -->
-    <form class="d-flex mb-4" @submit.prevent="buscar">
-      <input v-model="palabraClave" class="form-control me-2" type="search" placeholder="Buscar" aria-label="Buscar">
-    </form>
+    <p class="results-count">
+      {{ documentosFiltrados.length }} carátula{{ documentosFiltrados.length === 1 ? '' : 's' }}
+      encontrada{{ documentosFiltrados.length === 1 ? '' : 's' }}
+    </p>
 
-    <div class="mb-3 d-flex justify-content-end">
-      <button @click="descargarCaratulaEnBlanco" class="btn btn-success">
-        <i class="fas fa-file-invoice me-1"></i>
-        Descargar carátula en blanco
+    <div v-if="documentosPaginados.length" class="cards-grid">
+      <article
+        v-for="documento in documentosPaginados"
+        :key="documento.id || documento._id"
+        class="caratula-card"
+      >
+        <div class="card-accent" aria-hidden="true"></div>
+
+        <div class="card-top">
+          <span class="soporte-badge" :class="soporteClass(documento.soporte_documental)">
+            {{ documento.soporte_documental || 'Sin soporte' }}
+          </span>
+          <span class="card-consecutivo">No. {{ documento.no_consecutivo || '—' }}</span>
+        </div>
+
+        <h2 class="card-title">{{ documento.titulo_expediente || 'Sin título' }}</h2>
+        <p class="card-code">{{ documento.codigo_clasificacion_archivistica || 'Sin código' }}</p>
+        <p class="card-desc">{{ documento.descripcion_asunto_expediente || 'Sin descripción del asunto' }}</p>
+
+        <dl class="card-meta">
+          <div>
+            <dt>Sujeto obligado</dt>
+            <dd>{{ documento.nombre_sujeto_obligado || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Área generadora</dt>
+            <dd>{{ documento.area_generadora || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Fechas extremas</dt>
+            <dd>{{ documento.anio_apertura || '—' }} – {{ documento.anio_cierre || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Legajo / Fojas</dt>
+            <dd>{{ documento.no_legajo ?? '—' }} / {{ documento.no_fojas ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt>Capturador</dt>
+            <dd>{{ documento.capturador || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Valor documental</dt>
+            <dd>{{ documento.valor_documental || formatearValorDocumentalTabla(documento) || '—' }}</dd>
+          </div>
+        </dl>
+
+        <details class="card-more">
+          <summary>Ver más datos</summary>
+          <dl class="card-extra">
+            <div><dt>Área administrativa</dt><dd>{{ documento.area_administrativa || '—' }}</dd></div>
+            <div><dt>Ubicación topográfica</dt><dd>{{ documento.ubicacion_topografica || '—' }}</dd></div>
+            <div><dt>Vigencia documental</dt><dd>{{ documento.vigencia_documental || '—' }}</dd></div>
+            <div><dt>Años trámite</dt><dd>{{ documento.anios_archivo_tramite ?? '—' }}</dd></div>
+            <div><dt>Años concentración</dt><dd>{{ documento.anios_archivo_concentracion ?? '—' }}</dd></div>
+            <div><dt>Carácter</dt><dd>{{ documento.caracter_informacion || '—' }}</dd></div>
+            <div><dt>Fecha clasificación</dt><dd>{{ documento.fecha_clasificacion || '—' }}</dd></div>
+            <div><dt>Fundamento legal</dt><dd>{{ documento.fundamento_legal || '—' }}</dd></div>
+            <div><dt>Periodo reserva</dt><dd>{{ documento.periodo_reserva || '—' }}</dd></div>
+            <div><dt>Aplicación reserva</dt><dd>{{ documento.aplicacion_periodo_reserva || '—' }}</dd></div>
+            <div><dt>Rúbrica titular</dt><dd>{{ documento.rubrica_titular || '—' }}</dd></div>
+            <div><dt>Fecha desclasificación</dt><dd>{{ documento.fecha_desclasificacion || '—' }}</dd></div>
+            <div class="extra-full"><dt>Observaciones</dt><dd>{{ documento.observaciones || '—' }}</dd></div>
+          </dl>
+        </details>
+
+        <div class="card-actions">
+          <button type="button" class="btn-action btn-pdf" title="Descargar carátula con datos" @click="generarPdf(documento)">
+            PDF
+          </button>
+          <button
+            v-if="!currentUserRoles.includes('lector')"
+            type="button"
+            class="btn-action btn-edit"
+            title="Editar carátula"
+            @click="editarDocumento(documento)"
+          >
+            Editar
+          </button>
+          <button
+            v-if="!currentUserRoles.includes('lector')"
+            type="button"
+            class="btn-action btn-delete"
+            title="Eliminar carátula"
+            @click="eliminarDocumento(documento)"
+          >
+            Eliminar
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <div v-else class="empty">
+      <p class="empty-title">No se encontraron carátulas</p>
+      <p class="empty-sub">Ajuste el término de búsqueda o genere una carátula desde el módulo correspondiente.</p>
+    </div>
+
+    <div v-if="totalPaginas > 1" class="pager">
+      <button type="button" class="pager-btn" :disabled="paginaActual <= 1" @click="cambiarPagina(paginaActual - 1)">
+        ‹ Anterior
+      </button>
+      <span class="pager-info">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+      <button type="button" class="pager-btn" :disabled="paginaActual >= totalPaginas" @click="cambiarPagina(paginaActual + 1)">
+        Siguiente ›
       </button>
     </div>
 
-    <!-- Tabla de Resultados -->
-    <div class="table-responsive">
-      <table class="table table-bordered">
-        <thead>
-          <tr>
-            <th>Nombre del Sujeto Obligado </th>
-            <th>Área Administrativa</th>
-            <th>No. Consecutivo</th>
-            <th>Área Generadora</th>
-            <th>Código de Clasificación Archivística</th>
-            <th>Año Apertura</th>
-            <th>Año Cierre</th>
-            <th>Soporte Documental</th>
-            <th>Título del Expediente</th>
-            <th>Descripción del Asunto</th>
-            <th>Ubicación Topográfica</th>
-            <th>No. de Legajo</th>
-            <th>No. de Fojas</th>
-            <th>Valor Documental</th>
-            <th>Vigencia Documental</th>
-            <th>Años en Archivo de Trámite</th>
-            <th>Años en Archivo de Concentración</th>
-            <th>Carácter de la Información</th>
-            <th>Fecha de Clasificación</th>
-            <th>Fundamento Legal</th>
-            <th>Periodo de Reserva</th>
-            <th>Aplicación del Periodo de Reserva</th>
-            <th>Rubrica del Titular</th>
-            <th>Fecha de Desclasificación</th>
-            <th>Observaciones</th>
-            <th>Capturador</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="documentos.length === 0">
-            <td colspan="26">
-              <div class="no-data-message">
-                Sin datos
-              </div>
-            </td>
-          </tr>
-          <tr v-for="(documento, index) in documentos" :key="documento._id">
-            <td>{{ documento.nombre_sujeto_obligado }}</td>
-            <td>{{ documento.area_administrativa }}</td>
-            <td>{{ documento.no_consecutivo }}</td>
-            <td>{{ documento.area_generadora }}</td>
-            <td>{{ documento.codigo_clasificacion_archivistica }}</td>
-            <td>{{ documento.anio_apertura }}</td>
-            <td>{{ documento.anio_cierre }}</td>
-            <td>{{ documento.soporte_documental }}</td>
-            <td>{{ documento.titulo_expediente }}</td>
-            <td>{{ documento.descripcion_asunto_expediente }}</td>
-            <td>{{ documento.ubicacion_topografica }}</td>
-            <td>{{ documento.no_legajo }}</td>
-            <td>{{ documento.no_fojas }}</td>
-            <td>{{ documento.valor_documental || formatearValorDocumentalTabla(documento) }}</td>
-
-            <td>{{ documento.vigencia_documental }}</td>
-            <td>{{ documento.anios_archivo_tramite }}</td>
-            <td>{{ documento.anios_archivo_concentracion }}</td>
-            <td>{{ documento.caracter_informacion }}</td>
-            <td>{{ documento.fecha_clasificacion }}</td>
-            <td>{{ documento.fundamento_legal }}</td>
-            <td>{{ documento.periodo_reserva }}</td>
-            <td>{{ documento.aplicacion_periodo_reserva }}</td>
-            <td>{{ documento.rubrica_titular }}</td>
-            <td>{{ documento.fecha_desclasificacion }}</td>
-            <td>{{ documento.observaciones }}</td>
-            <td>{{ documento.capturador }}</td>
-            <td>
-              <button @click="generarPdf(documento)" class="btn btn-sm"
-                style="background-color: #b61917; color: white; margin-right: 5px;"
-                title="Descargar carátula con datos">
-                <i class="fas fa-file-pdf"></i>
-              </button>
-
-              <button v-if="!currentUserRoles.includes('lector')" @click="editarDocumento(documento)" class="btn btn-sm"
-                style="background-color: #2076ce; color: white; margin-right: 5px;">
-                <i class="fas fa-edit" style="color: #ffffff;"></i>
-              </button>
-
-              <button v-if="!currentUserRoles.includes('lector')" @click="eliminarDocumento(documento)"
-                class="btn btn-sm" style="background-color: #ff345c; color: white;">
-                <i class="fas fa-trash-alt" style="color: #ffffff;"></i>
-              </button>
-
-            </td>
-
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- Paginación -->
-      <div v-if="totalPaginas > 1" class="pagination-container">
-        <button v-for="page in totalPaginas" :key="page" @click="cambiarPagina(page)"
-          :class="['page-button', { active: page === paginaActual }]">
-          {{ page }}
-        </button>
-      </div>
-    </div>
-
     <!-- Modal de Edición -->
-    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-fullscreen">
+    <div class="modal fade cons-modal" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="editModalLabel">Editar Caratula de Expediente</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <h5 class="modal-title" id="editModalLabel">Editar carátula de expediente</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
           <div class="modal-body">
-            <form @submit.prevent="updateDocumento">
-              <div class="mb-3">
-                <label for="nombre_sujeto_obligado" class="form-label">Nombre del Sujeto Obligado</label>
-                <input v-model="editDocumento.nombre_sujeto_obligado" type="text" class="form-control"
-                  id="nombre_sujeto_obligado" required disabled>
-              </div>
+            <form class="edit-form" @submit.prevent="updateDocumento">
+              <div class="edit-grid">
+                <div class="field field-span-2">
+                  <label for="nombre_sujeto_obligado">Nombre del Sujeto Obligado</label>
+                  <input id="nombre_sujeto_obligado" v-model="editDocumento.nombre_sujeto_obligado" type="text" class="form-control" required disabled>
+                </div>
+                <div class="field">
+                  <label for="area_administrativa">Área Administrativa</label>
+                  <input id="area_administrativa" v-model="editDocumento.area_administrativa" type="text" class="form-control" required disabled>
+                </div>
+                <div class="field">
+                  <label for="area_generadora">Área Generadora</label>
+                  <input id="area_generadora" v-model="editDocumento.area_generadora" type="text" class="form-control" required disabled>
+                </div>
+                <div class="field">
+                  <label for="no_consecutivo">No. Consecutivo</label>
+                  <input id="no_consecutivo" v-model="editDocumento.no_consecutivo" type="text" class="form-control" required>
+                </div>
+                <div class="field">
+                  <label for="codigo_clasificacion_archivistica">Código de Clasificación Archivística</label>
+                  <input id="codigo_clasificacion_archivistica" v-model="editDocumento.codigo_clasificacion_archivistica" type="text" class="form-control" required>
+                </div>
+                <div class="field">
+                  <label for="anio_apertura">Año Apertura</label>
+                  <input id="anio_apertura" v-model="editDocumento.anio_apertura" type="number" class="form-control" required>
+                </div>
+                <div class="field">
+                  <label for="anio_cierre">Año Cierre</label>
+                  <input id="anio_cierre" v-model="editDocumento.anio_cierre" type="number" class="form-control" required>
+                </div>
+                <div class="field">
+                  <label for="soporte_documental">Soporte Documental</label>
+                  <input id="soporte_documental" v-model="editDocumento.soporte_documental" type="text" class="form-control" required>
+                </div>
+                <div class="field field-span-2">
+                  <label for="titulo_expediente">Título del Expediente</label>
+                  <input id="titulo_expediente" v-model="editDocumento.titulo_expediente" type="text" class="form-control" required>
+                </div>
+                <div class="field field-span-2">
+                  <label for="descripcion_asunto_expediente">Descripción del Asunto</label>
+                  <input id="descripcion_asunto_expediente" v-model="editDocumento.descripcion_asunto_expediente" type="text" class="form-control" required>
+                </div>
+                <div class="field field-span-2">
+                  <label for="ubicacion_topografica">Ubicación Topográfica</label>
+                  <input id="ubicacion_topografica" v-model="editDocumento.ubicacion_topografica" type="text" class="form-control" required disabled>
+                </div>
+                <div class="field">
+                  <label for="no_legajo">No. de Legajo</label>
+                  <input id="no_legajo" v-model="editDocumento.no_legajo" type="text" class="form-control" required>
+                </div>
+                <div class="field">
+                  <label for="no_fojas">No. de Fojas</label>
+                  <input id="no_fojas" v-model="editDocumento.no_fojas" type="number" class="form-control" required>
+                </div>
 
-              <div class="mb-3">
-                <label for="area_administrativa" class="form-label">Área Administrativa</label>
-                <input v-model="editDocumento.area_administrativa" type="text" class="form-control"
-                  id="area_administrativa" required disabled>
-              </div>
-
-              <div class="mb-3">
-                <label for="no_consecutivo" class="form-label">No. Consecutivo</label>
-                <input v-model="editDocumento.no_consecutivo" type="text" class="form-control" id="no_consecutivo"
-                  required>
-              </div>
-
-              <div class="mb-3">
-                <label for="area_generadora" class="form-label">Área Generadora</label>
-                <input v-model="editDocumento.area_generadora" type="text" class="form-control" id="area_generadora"
-                  required disabled>
-              </div>
-
-              <div class="mb-3">
-                <label for="codigo_clasificacion_archivistica" class="form-label">Código de Clasificación
-                  Archivística</label>
-                <input v-model="editDocumento.codigo_clasificacion_archivistica" type="text" class="form-control"
-                  id="codigo_clasificacion_archivistica" required>
-              </div>
-
-              <div class="mb-3">
-                <label for="anio_apertura" class="form-label">Año Apertura</label>
-                <input v-model="editDocumento.anio_apertura" type="number" class="form-control" id="anio_apertura"
-                  required>
-              </div>
-
-              <div class="mb-3">
-                <label for="anio_cierre" class="form-label">Año Cierre</label>
-                <input v-model="editDocumento.anio_cierre" type="number" class="form-control" id="anio_cierre" required>
-              </div>
-
-              <div class="mb-3">
-                <label for="soporte_documental" class="form-label">Soporte Documental</label>
-                <input v-model="editDocumento.soporte_documental" type="text" class="form-control"
-                  id="soporte_documental" required>
-              </div>
-
-              <div class="mb-3">
-                <label for="titulo_expediente" class="form-label">Título del Expediente</label>
-                <input v-model="editDocumento.titulo_expediente" type="text" class="form-control" id="titulo_expediente"
-                  required>
-              </div>
-
-              <div class="mb-3">
-                <label for="descripcion_asunto_expediente" class="form-label">Descripción del Asunto</label>
-                <input v-model="editDocumento.descripcion_asunto_expediente" type="text" class="form-control"
-                  id="descripcion_asunto_expediente" required>
-              </div>
-
-              <div class="mb-3">
-                <label for="ubicacion_topografica" class="form-label">Ubicación Topográfica</label>
-                <input v-model="editDocumento.ubicacion_topografica" type="text" class="form-control"
-                  id="ubicacion_topografica" required disabled>
-              </div>
-
-              <div class="mb-3">
-                <label for="no_legajo" class="form-label">No. de Legajo</label>
-                <input v-model="editDocumento.no_legajo" type="text" class="form-control" id="no_legajo" required>
-              </div>
-
-              <div class="mb-3">
-                <label for="no_fojas" class="form-label">No. de Fojas</label>
-                <input v-model="editDocumento.no_fojas" type="number" class="form-control" id="no_fojas" required>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label">Valor Documental</label>
-                <div class="d-flex gap-3">
-                  <div class="form-check">
-                    <input v-model="editDocumento.administrativo" class="form-check-input" type="checkbox"
-                      id="administrativo" />
-                    <label class="form-check-label" for="administrativo">Administrativo</label>
+                <div class="field field-span-2">
+                  <span class="field-label">Valor Documental</span>
+                  <div class="checks">
+                    <label class="check">
+                      <input v-model="editDocumento.administrativo" type="checkbox" id="administrativo">
+                      Administrativo
+                    </label>
+                    <label class="check">
+                      <input v-model="editDocumento.legal" type="checkbox" id="legal">
+                      Legal
+                    </label>
+                    <label class="check">
+                      <input v-model="editDocumento.contable" type="checkbox" id="contable">
+                      Contable
+                    </label>
                   </div>
-                  <div class="form-check">
-                    <input v-model="editDocumento.legal" class="form-check-input" type="checkbox" id="legal" />
-                    <label class="form-check-label" for="legal">Legal</label>
-                  </div>
-                  <div class="form-check">
-                    <input v-model="editDocumento.contable" class="form-check-input" type="checkbox" id="contable" />
-                    <label class="form-check-label" for="contable">Contable</label>
-                  </div>
+                </div>
+
+                <div class="field">
+                  <label for="vigencia_documental">Vigencia Documental</label>
+                  <input id="vigencia_documental" v-model="editDocumento.vigencia_documental" type="text" class="form-control" required>
+                </div>
+                <div class="field">
+                  <label for="caracter_informacion">Carácter de la Información</label>
+                  <input id="caracter_informacion" v-model="editDocumento.caracter_informacion" type="text" class="form-control" required>
+                </div>
+                <div class="field">
+                  <label for="anios_archivo_tramite">Años en Archivo de Trámite</label>
+                  <input id="anios_archivo_tramite" v-model="editDocumento.anios_archivo_tramite" type="number" class="form-control" required>
+                </div>
+                <div class="field">
+                  <label for="anios_archivo_concentracion">Años en Archivo de Concentración</label>
+                  <input id="anios_archivo_concentracion" v-model="editDocumento.anios_archivo_concentracion" type="number" class="form-control" required>
+                </div>
+                <div class="field">
+                  <label for="fecha_clasificacion">Fecha de Clasificación</label>
+                  <input id="fecha_clasificacion" v-model="editDocumento.fecha_clasificacion" type="date" class="form-control" required>
+                </div>
+                <div class="field">
+                  <label for="fecha_desclasificacion">Fecha de Desclasificación</label>
+                  <input id="fecha_desclasificacion" v-model="editDocumento.fecha_desclasificacion" type="date" class="form-control" required>
+                </div>
+                <div class="field field-span-2">
+                  <label for="fundamento_legal">Fundamento Legal</label>
+                  <input id="fundamento_legal" v-model="editDocumento.fundamento_legal" type="text" class="form-control" required>
+                </div>
+                <div class="field">
+                  <label for="periodo_reserva">Periodo de Reserva</label>
+                  <input id="periodo_reserva" v-model="editDocumento.periodo_reserva" type="text" class="form-control" required>
+                </div>
+                <div class="field">
+                  <label for="aplicacion_periodo_reserva">Aplicación del Periodo de Reserva</label>
+                  <input id="aplicacion_periodo_reserva" v-model="editDocumento.aplicacion_periodo_reserva" type="text" class="form-control" required>
+                </div>
+                <div class="field field-span-2">
+                  <label for="rubrica_titular">Rubrica del Titular</label>
+                  <input id="rubrica_titular" v-model="editDocumento.rubrica_titular" type="text" class="form-control" required>
+                </div>
+                <div class="field field-span-2">
+                  <label for="observaciones">Observaciones</label>
+                  <textarea id="observaciones" v-model="editDocumento.observaciones" class="form-control" rows="3" required></textarea>
                 </div>
               </div>
 
-
-
-              <div class="mb-3">
-                <label for="vigencia_documental" class="form-label">Vigencia Documental</label>
-                <input v-model="editDocumento.vigencia_documental" type="text" class="form-control"
-                  id="vigencia_documental" required>
+              <div class="edit-footer">
+                <button type="submit" class="btn-save">Guardar cambios</button>
               </div>
-
-              <div class="mb-3">
-                <label for="anios_archivo_tramite" class="form-label">Años en Archivo de Trámite</label>
-                <input v-model="editDocumento.anios_archivo_tramite" type="number" class="form-control"
-                  id="anios_archivo_tramite" required>
-              </div>
-
-              <div class="mb-3">
-                <label for="anios_archivo_concentracion" class="form-label">Años en Archivo de Concentración</label>
-                <input v-model="editDocumento.anios_archivo_concentracion" type="number" class="form-control"
-                  id="anios_archivo_concentracion" required>
-              </div>
-
-              <div class="mb-3">
-                <label for="caracter_informacion" class="form-label">Carácter de la Información</label>
-                <input v-model="editDocumento.caracter_informacion" type="text" class="form-control"
-                  id="caracter_informacion" required>
-              </div>
-
-              <div class="mb-3">
-                <label for="fecha_clasificacion" class="form-label">Fecha de Clasificación</label>
-                <input v-model="editDocumento.fecha_clasificacion" type="date" class="form-control"
-                  id="fecha_clasificacion" required>
-              </div>
-
-              <div class="mb-3">
-                <label for="fundamento_legal" class="form-label">Fundamento Legal</label>
-                <input v-model="editDocumento.fundamento_legal" type="text" class="form-control" id="fundamento_legal"
-                  required>
-              </div>
-
-              <div class="mb-3">
-                <label for="periodo_reserva" class="form-label">Periodo de Reserva</label>
-                <input v-model="editDocumento.periodo_reserva" type="text" class="form-control" id="periodo_reserva"
-                  required>
-              </div>
-
-              <div class="mb-3">
-                <label for="aplicacion_periodo_reserva" class="form-label">Aplicación del Periodo de Reserva</label>
-                <input v-model="editDocumento.aplicacion_periodo_reserva" type="text" class="form-control"
-                  id="aplicacion_periodo_reserva" required>
-              </div>
-
-              <div class="mb-3">
-                <label for="rubrica_titular" class="form-label">Rubrica del Titular</label>
-                <input v-model="editDocumento.rubrica_titular" type="text" class="form-control" id="rubrica_titular"
-                  required>
-              </div>
-
-              <div class="mb-3">
-                <label for="fecha_desclasificacion" class="form-label">Fecha de Desclasificación</label>
-                <input v-model="editDocumento.fecha_desclasificacion" type="date" class="form-control"
-                  id="fecha_desclasificacion" required>
-              </div>
-
-              <div class="mb-3">
-                <label for="observaciones" class="form-label">Observaciones</label>
-                <textarea v-model="editDocumento.observaciones" class="form-control" id="observaciones" rows="3"
-                  required></textarea>
-              </div>
-
-              <button type="submit" class="btn btn-primary">Guardar Cambios</button>
             </form>
           </div>
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -310,11 +284,10 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
-
 export default {
   data() {
     return {
-      currentUserRoles: [], // inicial vacío, luego carga real
+      currentUserRoles: [],
       documentos: [],
       paginaActual: 1,
       documentosPorPagina: 12,
@@ -322,7 +295,7 @@ export default {
         administrativo: false,
         legal: false,
         contable: false,
-        valor_documental: {}, // Inicializa como un objeto vacío
+        valor_documental: {},
       },
       files: [],
       palabraClave: '',
@@ -335,7 +308,7 @@ export default {
       return documentos.slice(inicio, inicio + this.documentosPorPagina);
     },
     totalPaginas() {
-      return Math.ceil(this.documentosFiltrados.length / this.documentosPorPagina);
+      return Math.ceil(this.documentosFiltrados.length / this.documentosPorPagina) || 0;
     },
     documentosFiltrados() {
       if (!this.palabraClave) return this.documentos;
@@ -349,19 +322,17 @@ export default {
   mounted() {
     this.getAllDocuments();
     this.getCurrentUser();
-    Fancybox.bind("[data-fancybox]", {
-      // Opciones adicionales de FancyBox si es necesario
-    });
+    Fancybox.bind("[data-fancybox]", {});
   },
   methods: {
-    saveForm() {
-      const valorDocumentalStr = this.valorDocumental.join(", ");
-    },
-    buscar() {
-      this.paginaActual = 1;
-      this.obtenerDocumentos();
+    soporteClass(soporte) {
+      const valor = String(soporte || '').toLowerCase();
+      if (valor.includes('electr')) return 'soporte-electronico';
+      if (valor.includes('fís') || valor.includes('fis')) return 'soporte-fisico';
+      return 'soporte-otro';
     },
     cambiarPagina(pagina) {
+      if (pagina < 1 || pagina > this.totalPaginas) return;
       this.paginaActual = pagina;
     },
     getAllDocuments() {
@@ -380,49 +351,40 @@ export default {
       if (documento.valor_documental_contable == 1) partes.push('Contable');
       return partes.join(', ');
     },
-   async getCurrentUser() {
-  try {
-    const response = await axios.get('/currentuser');
-    this.currentUser = response.data;
-    // Suponiendo que la respuesta tiene un array de roles en response.data.roles
-    this.currentUserRoles = response.data.roles || [];
-  } catch (error) {
-    console.error('Error al obtener usuario actual:', error);
-  }
-},
+    async getCurrentUser() {
+      try {
+        const response = await axios.get('/currentuser');
+        this.currentUser = response.data;
+        this.currentUserRoles = response.data.roles || [];
+      } catch (error) {
+        console.error('Error al obtener usuario actual:', error);
+      }
+    },
     editarDocumento(documento) {
       if (!documento) {
         console.error('El documento no está definido:', documento);
         return;
       }
 
-
-      // Asegúrate de que los valores booleanos estén correctamente configurados
       this.editDocumento = { ...documento };
-
       this.editDocumento.administrativo = documento.valor_documental_administrativo == 1;
       this.editDocumento.legal = documento.valor_documental_legal == 1;
       this.editDocumento.contable = documento.valor_documental_contable == 1;
       $('#editModal').modal('show');
     },
-
-
     updateDocumento() {
       if (!this.editDocumento) {
         console.error('editDocumento no está definido');
         return;
       }
 
-      // Crear el objeto valor_documental a partir de los valores booleanos
       const valorDocumental = {
         administrativo: this.editDocumento.administrativo || false,
         legal: this.editDocumento.legal || false,
         contable: this.editDocumento.contable || false,
       };
 
-      // Asignar el objeto a editDocumento
       this.editDocumento.valor_documental = valorDocumental;
-
       const idDocumento = this.editDocumento.id;
 
       axios.post(`/documentos/update/${idDocumento}`, this.editDocumento)
@@ -433,8 +395,8 @@ export default {
             showConfirmButton: false,
             timer: 1500
           });
-          this.getAllDocuments(); // Refrescar
-          $('#editModal').modal('hide'); // Cerrar modal
+          this.getAllDocuments();
+          $('#editModal').modal('hide');
         })
         .catch(error => {
           console.error('Error al actualizar documento:', error);
@@ -445,7 +407,6 @@ export default {
           });
         });
     },
-
     descargarCaratulaEnBlanco() {
       if (!this.documentos.length) {
         Swal.fire({
@@ -459,21 +420,19 @@ export default {
       const documentoSeleccionado = this.documentos[0];
       this.generarPdf(documentoSeleccionado, true);
     },
-
     generarPdf(documento, enBlanco = false) {
       const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: "letter", // Tamaño carta
+        format: "letter",
       });
 
-      // Usar documentoId directamente, similar a la segunda función
       const idDocumento = documento.id;
 
       axios.get(`/documentos/${idDocumento}`)
         .then(response => {
           const documento = response.data;
-          const imgData = "assets/logoletras.png"; // Inserta la imagen en base64
+          const imgData = "assets/logoletras.png";
           const emptyValue = (value) => (enBlanco ? "" : value);
 
           const valorDocumentalDisplay = (() => {
@@ -503,15 +462,13 @@ export default {
 
           const caracterInformacionDisplay = enBlanco ? '' : (valorDocumentalDisplay || '');
 
-          // Posición inicial y tamaño de celda ajustado
           let startX = 10;
           let startY = 10;
-          const pageWidth = 190; // Ancho total para tamaño carta
+          const pageWidth = 190;
           const cellWidth = pageWidth / 2;
           const rowHeight = 8;
-          const logoCellHeight = 16; // Nueva altura para la celda del LOGOTIPO
+          const logoCellHeight = 16;
 
-          // Configuración de la tabla
           const tableData = [
             [
               { label: "LOGOTIPO" },
@@ -572,69 +529,55 @@ export default {
             ],
           ];
 
-          // Función para dibujar una celda con color de fondo para los labels
           function drawCell(x, y, width, height, text, align = "left", bold = false, img = null, isLabel = false) {
-            // Si la celda es un label, aplicar fondo gris
             if (isLabel) {
-              doc.setFillColor(200, 200, 200); // Gris claro
-              doc.rect(x, y, width, height, "F"); // Dibuja el fondo gris
+              doc.setFillColor(200, 200, 200);
+              doc.rect(x, y, width, height, "F");
             }
 
-            doc.rect(x, y, width, height); // Dibuja el borde de la celda
+            doc.rect(x, y, width, height);
 
-            // Si la celda tiene imagen, se inserta
             if (img) {
-              // Ajusta la imagen para que se ajuste dentro de la celda
-              const imgWidth = Math.min(width - 4, 30); // Ajusta el ancho de la imagen
-              const imgHeight = logoCellHeight - 4; // Ajustamos la altura de la imagen al tamaño de la celda menos los márgenes
-
-              // Inserta la imagen ajustada a las dimensiones de la celda
+              const imgWidth = Math.min(width - 4, 30);
+              const imgHeight = logoCellHeight - 4;
               doc.addImage(img, "PNG", x + (width - imgWidth) / 2, y + (height - imgHeight) / 2, imgWidth, imgHeight);
             } else {
-              // Dibuja el texto (si lo hay)
               doc.setFont("helvetica", bold ? "bold" : "normal");
               doc.setFontSize(8);
               doc.text(String(text), x + 2, y + height / 2 + 2, { align: align });
             }
           }
 
-          // Generar tabla
           tableData.forEach((row) => {
             let currentX = startX;
             row.forEach((cell) => {
-              const width = cell.colspan ? cellWidth * 2 : (cell.width || cellWidth); // Verifica si tiene un 'width' específico
-              const height = (cell.label === "LOGOTIPO") ? logoCellHeight : (cell.height || rowHeight); // Ajusta la altura si es la celda del LOGOTIPO
+              const width = cell.colspan ? cellWidth * 2 : (cell.width || cellWidth);
+              const height = (cell.label === "LOGOTIPO") ? logoCellHeight : (cell.height || rowHeight);
 
-              // Verifica si es la celda donde va la imagen
               if (cell.label === "LOGOTIPO") {
-                drawCell(currentX, startY, width, logoCellHeight, "", "center", false, imgData); // Inserta la imagen aquí
+                drawCell(currentX, startY, width, logoCellHeight, "", "center", false, imgData);
               } else {
-                // Para los labels, pasamos isLabel: true para que tengan fondo gris
-                drawCell(currentX, startY, width, rowHeight, cell.label, "left", true, null, true); // Label con fondo gris
+                drawCell(currentX, startY, width, rowHeight, cell.label, "left", true, null, true);
                 drawCell(currentX, startY + rowHeight, width, rowHeight, cell.value || "", "left");
               }
 
               currentX += width;
             });
-            startY += rowHeight * 2; // Altura para label y valor
+            startY += rowHeight * 2;
 
-            // Salto de página si excede el tamaño carta
             if (startY + rowHeight * 2 > 270) {
               doc.addPage();
               startY = 10;
             }
           });
 
-          // Guardar el PDF
           const fileName = enBlanco ? "caratula_expediente_en_blanco.pdf" : "caratula_expediente.pdf";
           doc.save(fileName);
-
         })
         .catch(error => {
           console.error("Error al obtener los datos:", error);
         });
     },
-
     eliminarDocumento(documento) {
       const idDocumento = documento.id;
 
@@ -643,19 +586,15 @@ export default {
         text: "No podrás revertir esto",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
+        confirmButtonColor: '#AB0A3D',
+        cancelButtonColor: '#78736a',
         confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar'
       }).then((result) => {
         if (result.isConfirmed) {
-          axios.delete(`/documentos/${idDocumento}`)  // Usa el documentoId correcto
+          axios.delete(`/documentos/${idDocumento}`)
             .then(() => {
-              Swal.fire(
-                'Eliminado',
-                'El documento ha sido eliminado',
-                'success'
-              );
+              Swal.fire('Eliminado', 'El documento ha sido eliminado', 'success');
               this.getAllDocuments();
             })
             .catch(error => {
@@ -674,87 +613,484 @@ export default {
 </script>
 
 <style scoped>
-.modal-title {
-  text-align: center;
+.consultar-page {
+  --surface: #ffffff;
+  --ink: #3D3935;
+  --ink-soft: #78736a;
+  --line: #e4e0d8;
+  --brand: #AB0A3D;
+  --brand-dark: #440412;
+  --brand-soft: #f7e5eb;
+  --gold: #B68400;
+  --gold-soft: #faf1dd;
+  --stone: #B0ABA1;
+
+  background: transparent;
+  min-height: 100vh;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1.75rem 1rem 3rem;
+  color: var(--ink);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: .5rem;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 .25rem;
+  letter-spacing: -.01em;
+  color: var(--brand-dark);
+}
+
+.page-sub {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: .9rem;
+}
+
+.head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: center;
+}
+
+.search-box {
+  position: relative;
+  min-width: 240px;
+}
+
+.search-ico {
+  position: absolute;
+  left: .85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-soft);
+}
+
+.search-input {
   width: 100%;
-  /* Ocupa todo el ancho */
+  border: 1px solid var(--line);
+  border-radius: .6rem;
+  background: var(--surface);
+  padding: .55rem .75rem .55rem 2.1rem;
+  font-size: .88rem;
+  color: var(--ink);
 }
 
-
-.table {
-  table-layout: auto;
-  word-wrap: break-word;
+.search-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 16%, transparent);
 }
 
-.table th,
-.table td {
-  padding: 12px;
-  vertical-align: middle;
-  white-space: nowrap;
+.btn-blank {
+  border: 1px solid var(--gold);
+  background: var(--gold-soft);
+  color: var(--brand-dark);
+  font-size: .82rem;
+  font-weight: 700;
+  padding: .55rem .9rem;
+  border-radius: .6rem;
+  cursor: pointer;
+  transition: background .15s, transform .12s;
 }
 
-.table-responsive {
-  margin: 30px 0;
-  -webkit-overflow-scrolling: touch;
-  overflow-x: auto;
+.btn-blank:hover {
+  background: #f5e6c0;
+  transform: translateY(-1px);
 }
 
-.table-hover tbody tr:hover {
-  background-color: #f5f5f5;
+.results-count {
+  font-size: .8rem;
+  color: var(--ink-soft);
+  margin: 0 0 1.25rem;
 }
 
-.table-sm th,
-.table-sm td {
-  padding: 8px;
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+  align-items: stretch;
 }
 
-.pagination {
+.caratula-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: .7rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: .95rem;
+  padding: 1.1rem 1.15rem 1rem;
+  box-shadow: 0 8px 20px rgba(68, 4, 18, .06);
+  min-height: 100%;
+  overflow: hidden;
+}
+
+.card-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--brand), var(--gold));
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-top: .15rem;
+}
+
+.soporte-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: .72rem;
+  font-weight: 700;
+  border-radius: 1rem;
+  padding: .22rem .65rem;
+}
+
+.soporte-fisico {
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.soporte-electronico {
+  color: #7a5a00;
+  background: var(--gold-soft);
+}
+
+.soporte-otro {
+  color: var(--ink-soft);
+  background: #f3f1ed;
+}
+
+.card-consecutivo {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.card-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--brand-dark);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  min-height: calc(1.05rem * 1.3 * 2);
+}
+
+.card-code {
+  margin: 0;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--brand);
+  word-break: break-word;
+}
+
+.card-desc {
+  margin: 0;
+  font-size: .82rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  min-height: calc(0.82rem * 1.4 * 2);
+}
+
+.card-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .55rem .75rem;
+  margin: .15rem 0 0;
+}
+
+.card-meta dt {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--ink-soft);
+  margin: 0 0 .1rem;
+}
+
+.card-meta dd {
+  margin: 0;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: break-word;
+}
+
+.card-more {
+  border-top: 1px dashed var(--line);
+  padding-top: .55rem;
+}
+
+.card-more summary {
+  cursor: pointer;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--brand);
+  list-style: none;
+}
+
+.card-more summary::-webkit-details-marker { display: none; }
+
+.card-extra {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .45rem .7rem;
+  margin: .65rem 0 0;
+}
+
+.card-extra dt {
+  font-size: .66rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  margin: 0;
+}
+
+.card-extra dd {
+  margin: .1rem 0 0;
+  font-size: .8rem;
+  color: var(--ink);
+  overflow-wrap: break-word;
+}
+
+.extra-full { grid-column: 1 / -1; }
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  margin-top: auto;
+  padding-top: .55rem;
+  border-top: 1px solid var(--line);
+}
+
+.btn-action {
+  border: none;
+  border-radius: .55rem;
+  font-size: .78rem;
+  font-weight: 700;
+  padding: .45rem .75rem;
+  cursor: pointer;
+  transition: transform .12s, filter .15s;
+}
+
+.btn-action:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.btn-pdf {
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  color: #fff;
+}
+
+.btn-edit {
+  background: var(--gold-soft);
+  color: var(--brand-dark);
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+}
+
+.btn-delete {
+  background: #fff;
+  color: var(--brand);
+  border: 1px solid color-mix(in srgb, var(--brand) 35%, transparent);
+}
+
+.empty {
+  text-align: center;
+  padding: 3.5rem 1rem;
+}
+
+.empty-title {
+  font-weight: 700;
+  margin: 0 0 .3rem;
+  color: var(--brand-dark);
+}
+
+.empty-sub {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: .88rem;
+}
+
+.pager {
+  margin-top: 2rem;
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  align-items: center;
+  gap: 1rem;
 }
 
-.no-data-message {
-  text-align: center;
-  padding: 60px 0;
-  font-size: 30px;
-  color: #666;
+.pager-info {
+  font-size: .82rem;
+  color: var(--ink-soft);
 }
 
-.button-spacing {
-  margin-right: 10px;
+.pager-btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: .82rem;
+  font-weight: 600;
+  padding: .45rem .85rem;
+  border-radius: .55rem;
+  cursor: pointer;
 }
 
-@media (max-width: 768px) {
-  .table thead {
-    display: none;
+.pager-btn:hover:not(:disabled) {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.pager-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+/* Modal */
+.cons-modal :deep(.modal-content) {
+  border: 1px solid var(--line);
+  border-radius: .95rem;
+  box-shadow: 0 12px 32px rgba(20, 10, 15, .18);
+}
+
+.cons-modal :deep(.modal-header) {
+  border-bottom: 1px solid var(--line);
+  padding: 1rem 1.25rem;
+}
+
+.cons-modal :deep(.modal-title) {
+  font-weight: 700;
+  color: var(--brand-dark);
+  width: auto;
+  text-align: left;
+}
+
+.cons-modal :deep(.modal-body) {
+  padding: 1.25rem;
+}
+
+.edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .9rem 1rem;
+}
+
+.field label,
+.field-label {
+  display: block;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: .3rem;
+}
+
+.field-span-2 { grid-column: 1 / -1; }
+
+.edit-form :deep(.form-control) {
+  border: 1px solid var(--line);
+  border-radius: .55rem;
+  font-size: .88rem;
+  padding: .5rem .7rem;
+  color: var(--ink);
+}
+
+.edit-form :deep(.form-control:focus) {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--brand) 18%, transparent);
+}
+
+.edit-form :deep(.form-control:disabled) {
+  background: #f7f5f2;
+  color: var(--ink-soft);
+}
+
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .85rem;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .88rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.check input {
+  accent-color: var(--brand);
+}
+
+.edit-footer {
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-save {
+  border: none;
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  color: #fff;
+  font-weight: 700;
+  font-size: .9rem;
+  padding: .7rem 1.2rem;
+  border-radius: .6rem;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(171, 10, 61, .22);
+}
+
+.btn-save:hover { filter: brightness(1.05); }
+
+@media (max-width: 720px) {
+  .edit-grid,
+  .card-meta,
+  .card-extra {
+    grid-template-columns: 1fr;
   }
 
-  .table tbody,
-  .table tr,
-  .table td {
-    display: block;
+  .field-span-2,
+  .extra-full {
+    grid-column: auto;
+  }
+
+  .head-actions {
     width: 100%;
   }
 
-  .table tr {
-    margin-bottom: 15px;
-  }
-
-  .table td {
-    text-align: right;
-    padding-left: 50%;
-    position: relative;
-  }
-
-  .table td::before {
-    content: attr(data-label);
-    position: absolute;
-    left: 0;
-    width: 50%;
-    padding-left: 15px;
-    font-weight: bold;
-    text-align: left;
+  .search-box {
+    min-width: 0;
+    flex: 1;
   }
 }
 </style>
