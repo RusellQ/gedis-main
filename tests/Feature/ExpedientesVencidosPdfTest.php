@@ -21,6 +21,7 @@ class ExpedientesVencidosPdfTest extends TestCase
 
         $this->assertStringContainsString('Reporte de expedientes vencidos', $html);
         $this->assertStringContainsString('No se encontraron expedientes', $html);
+        $this->assertStringContainsString('table-layout: fixed', $html);
         $this->assertStringContainsString(public_path('assets/QRletras.png'), $html);
         $this->assertStringContainsString(public_path('assets/logo.png'), $html);
         $this->assertStringNotContainsString('../assets/QRletras.png', $html);
