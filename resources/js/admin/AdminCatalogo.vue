@@ -1,236 +1,253 @@
 <template>
-  <div class="form-container">
-    <div class="caratula-background">
-      <h1>Catálogo de clasificación</h1>
-
-      <div class="selector-expediente caratula-form mb-4">
-        <h5 class="selector-titulo">Ubicación en el catálogo archivístico</h5>
-        <p class="selector-ayuda text-muted">
-          Elija el tipo de nivel a administrar y, si aplica, el padre en la cascada fondo, sección, serie y subfondo/subserie.
+  <div class="catalogo-page">
+    <header class="page-head">
+      <div>
+        <h1 class="page-title">Catálogo de clasificación</h1>
+        <p class="page-sub">
+          Administre la jerarquía Fondo → (Subfondo) → Sección → Serie → (Subserie) sin saltar niveles.
         </p>
+      </div>
+      <span class="total-pill">{{ listaFiltrada.length }} {{ tabLabel.toLowerCase() }}{{ listaFiltrada.length === 1 ? '' : 's' }}</span>
+    </header>
 
-        <div class="row g-3">
-          <div class="col-md-4">
-            <label>Tipo de nivel</label>
-            <select v-model="activeTab" class="form-control" @change="onTipoNivelChange">
-              <option v-for="tab in tabs" :key="tab.key" :value="tab.key">{{ tab.label }}</option>
-            </select>
-          </div>
+    <section class="panel cascade-panel">
+      <h2 class="panel-title">Ubicación en el catálogo</h2>
+      <p class="panel-help">Elija el nivel a administrar y, si aplica, el padre en la cascada.</p>
 
-          <div class="col-md-4" v-if="activeTab !== 'fondo'">
-            <label>Fondo</label>
-            <select v-model="selected.fondo" class="form-control" @change="onFondoChange">
-              <option disabled value="">Selecciona un fondo</option>
-              <option v-for="fondo in fondos" :key="fondo.id" :value="fondo.id">{{ fondo.nombre }}</option>
-            </select>
-          </div>
-
-          <div class="col-md-4" v-if="selected.fondo && (activeTab === 'seccion' || needsSeccion)">
-            <label>Subfondo (opcional)</label>
-            <select v-model="selected.subfondo" class="form-control" @change="onSubfondoChange">
-              <option value="">Sin subfondo</option>
-              <option v-for="subfondo in subfondos" :key="subfondo.id" :value="subfondo.id">
-                {{ subfondo.nombre }}
-              </option>
-            </select>
-          </div>
-
-          <div class="col-md-4" v-if="selected.fondo && needsSeccion">
-            <label>Sección</label>
-            <select v-model="selected.seccion" class="form-control" @change="onSeccionChange">
-              <option disabled value="">Selecciona una sección</option>
-              <option v-for="seccion in secciones" :key="seccion.id" :value="seccion.id">{{ seccion.nombre }}</option>
-            </select>
-            <p v-if="!secciones.length" class="text-muted small mt-1">No hay secciones en este contexto.</p>
-          </div>
-
-          <div class="col-md-4" v-if="selected.seccion && needsSerie">
-            <label>Serie</label>
-            <select v-model="selected.serie" class="form-control" @change="onSerieChange">
-              <option disabled value="">Selecciona una serie</option>
-              <option v-for="serie in seriesList" :key="serie.id" :value="serie.id">{{ serie.nombre }}</option>
-            </select>
-            <p v-if="!seriesList.length" class="text-muted small mt-1">Esta sección no tiene series.</p>
-          </div>
-        </div>
+      <div class="level-tabs" role="tablist" aria-label="Nivel del catálogo">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          type="button"
+          class="level-tab"
+          :class="{ 'tab-on': activeTab === tab.key }"
+          @click="setActiveTab(tab.key)"
+        >
+          {{ tab.label }}
+        </button>
       </div>
 
-      <div class="caratula-form">
-        <form @submit.prevent="guardar">
-          <FormSectionHeader
-            :title="formSectionTitle"
-            :badge="editingId ? 'Edición' : 'Captura manual'"
-            :badge-class="editingId ? 'bg-warning text-dark' : 'bg-primary'"
-            variant="session"
-            :description="formSectionDescription"
-          />
+      <div class="field-grid">
+        <div v-if="activeTab !== 'fondo'" class="field">
+          <label>Fondo</label>
+          <select v-model="selected.fondo" class="control" @change="onFondoChange">
+            <option disabled value="">Selecciona un fondo</option>
+            <option v-for="fondo in fondos" :key="fondo.id" :value="fondo.id">{{ fondo.nombre }}</option>
+          </select>
+        </div>
 
-          <div v-if="parentHint && !editingId" class="alert alert-warning small py-2 mb-3">
-            {{ parentHint }}
-          </div>
+        <div v-if="selected.fondo && (activeTab === 'seccion' || needsSeccion)" class="field">
+          <label>Subfondo (opcional)</label>
+          <select v-model="selected.subfondo" class="control" @change="onSubfondoChange">
+            <option value="">Sin subfondo</option>
+            <option v-for="subfondo in subfondos" :key="subfondo.id" :value="subfondo.id">
+              {{ subfondo.nombre }}
+            </option>
+          </select>
+        </div>
 
-          <div class="row g-3">
-            <div class="col-md-6" v-if="activeTab === 'fondo'">
-              <label>Dependencia</label>
-              <select
-                v-model="form.id_dependencia"
-                class="form-control"
-                :disabled="!!editingId"
-                @change="cargarDepartamentos"
-                required
-              >
-                <option disabled value="">Seleccione una dependencia</option>
-                <option v-for="d in dependencias" :key="d.id" :value="d.id">{{ d.nombre }}</option>
-              </select>
-            </div>
+        <div v-if="selected.fondo && needsSeccion" class="field">
+          <label>Sección</label>
+          <select v-model="selected.seccion" class="control" @change="onSeccionChange">
+            <option disabled value="">Selecciona una sección</option>
+            <option v-for="seccion in secciones" :key="seccion.id" :value="seccion.id">{{ seccion.nombre }}</option>
+          </select>
+          <p v-if="!secciones.length" class="field-hint">No hay secciones en este contexto.</p>
+        </div>
 
-            <div class="col-md-6" v-if="activeTab === 'fondo'">
-              <label>Departamento</label>
-              <select
-                v-model="form.id_departamento"
-                class="form-control"
-                :disabled="!!editingId || !form.id_dependencia"
-                required
-              >
-                <option disabled value="">Seleccione un departamento</option>
-                <option v-for="d in departamentos" :key="d.id" :value="d.id">{{ d.nombre }}</option>
-              </select>
-            </div>
+        <div v-if="selected.seccion && needsSerie" class="field">
+          <label>Serie</label>
+          <select v-model="selected.serie" class="control" @change="onSerieChange">
+            <option disabled value="">Selecciona una serie</option>
+            <option v-for="serie in seriesList" :key="serie.id" :value="serie.id">{{ serie.nombre }}</option>
+          </select>
+          <p v-if="!seriesList.length" class="field-hint">Esta sección no tiene series.</p>
+        </div>
+      </div>
+    </section>
 
-            <div class="col-md-6">
-              <label>Nombre</label>
-              <input v-model="form.nombre" type="text" class="form-control" required />
-            </div>
-
-            <div class="col-md-6">
-              <label>Código</label>
-              <input v-model="form.codigo" type="text" class="form-control" required />
-            </div>
-
-            <div class="col-12">
-              <label>Descripción</label>
-              <textarea v-model="form.descripcion" class="form-control" rows="2"></textarea>
-            </div>
-          </div>
-
-          <template v-if="activeTab === 'serie'">
-            <FormSectionHeader
-              class="mt-4"
-              title="Reglas documentales / CADIDO"
-              badge="Captura manual"
-              badge-class="bg-primary"
-              variant="catalog"
-              description="Defina vigencias, plazos de conservación y técnicas de selección para la serie."
-            />
-
-            <div class="row g-3">
-              <div class="col-md-4">
-                <div class="form-check mt-2">
-                  <input class="form-check-input" type="checkbox" id="vigencia_ad" v-model="form.vigencia_ad" />
-                  <label class="form-check-label" for="vigencia_ad">Vigencia administrativo</label>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-check mt-2">
-                  <input class="form-check-input" type="checkbox" id="vigencia_le" v-model="form.vigencia_le" />
-                  <label class="form-check-label" for="vigencia_le">Legal</label>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-check mt-2">
-                  <input class="form-check-input" type="checkbox" id="vigencia_confi" v-model="form.vigencia_confi" />
-                  <label class="form-check-label" for="vigencia_confi">Confidencial / contable</label>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <label>Plazo AT</label>
-                <input v-model.number="form.plazo_at" type="number" min="0" class="form-control" />
-              </div>
-              <div class="col-md-4">
-                <label>Plazo AC</label>
-                <input v-model.number="form.plazo_ac" type="number" min="0" class="form-control" />
-              </div>
-              <div class="col-md-4">
-                <label>Total años</label>
-                <input v-model.number="form.plazo_ta" type="number" min="0" class="form-control" />
-              </div>
-              <div class="col-md-4">
-                <div class="form-check mt-2">
-                  <input class="form-check-input" type="checkbox" id="tec_elim" v-model="form.tecnica_eliminacion" />
-                  <label class="form-check-label" for="tec_elim">Eliminación</label>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-check mt-2">
-                  <input class="form-check-input" type="checkbox" id="tec_cons" v-model="form.tecnica_conservacion" />
-                  <label class="form-check-label" for="tec_cons">Conservación</label>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-check mt-2">
-                  <input class="form-check-input" type="checkbox" id="tec_muest" v-model="form.tecnica_muestreo" />
-                  <label class="form-check-label" for="tec_muest">Muestreo</label>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <label>Clasificación reservada</label>
-                <input v-model="form.clasificacion_r" type="text" class="form-control" />
-              </div>
-              <div class="col-md-6">
-                <label>Clasificación confidencial</label>
-                <input v-model="form.clasificacion_c" type="text" class="form-control" />
-              </div>
-              <div class="col-12">
-                <label>Observaciones</label>
-                <textarea v-model="form.observaciones" class="form-control" rows="2"></textarea>
-              </div>
-            </div>
-          </template>
-
-          <button type="submit" class="btn btn-success me-2" :disabled="saving || (!!parentHint && !editingId)">
-            {{ submitLabel }}
-          </button>
-          <button v-if="editingId" type="button" class="btn btn-secondary" @click="resetForm">
-            Cancelar edición
-          </button>
-        </form>
-
-        <hr class="my-4" />
-
+    <section class="panel form-panel">
+      <form @submit.prevent="guardar">
         <FormSectionHeader
-          :title="listSectionTitle"
-          badge="Consulta"
-          badge-class="bg-secondary"
-          variant="catalog"
-          :description="listSectionDescription"
+          :title="formSectionTitle"
+          :badge="editingId ? 'Edición' : 'Captura'"
+          :badge-class="editingId ? 'bg-warning text-dark' : 'bg-primary'"
+          variant="session"
+          :description="formSectionDescription"
         />
 
-        <div class="table-responsive">
-          <table class="table table-bordered">
-            <thead class="table-light">
+        <div v-if="parentHint && !editingId" class="hint-box">
+          {{ parentHint }}
+        </div>
+
+        <div class="field-grid">
+          <div v-if="activeTab === 'fondo'" class="field">
+            <label>Dependencia</label>
+            <select
+              v-model="form.id_dependencia"
+              class="control"
+              :disabled="!!editingId"
+              required
+              @change="cargarDepartamentos"
+            >
+              <option disabled value="">Seleccione una dependencia</option>
+              <option v-for="d in dependencias" :key="d.id" :value="d.id">{{ d.nombre }}</option>
+            </select>
+          </div>
+
+          <div v-if="activeTab === 'fondo'" class="field">
+            <label>Departamento</label>
+            <select
+              v-model="form.id_departamento"
+              class="control"
+              :disabled="!!editingId || !form.id_dependencia"
+              required
+            >
+              <option disabled value="">Seleccione un departamento</option>
+              <option v-for="d in departamentos" :key="d.id" :value="d.id">{{ d.nombre }}</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Nombre</label>
+            <input v-model="form.nombre" type="text" class="control" required>
+          </div>
+
+          <div class="field">
+            <label>Código</label>
+            <input v-model="form.codigo" type="text" class="control" required>
+          </div>
+
+          <div class="field field-span">
+            <label>Descripción</label>
+            <textarea v-model="form.descripcion" class="control" rows="2"></textarea>
+          </div>
+        </div>
+
+        <template v-if="activeTab === 'serie'">
+          <FormSectionHeader
+            class="mt-4"
+            title="Reglas documentales / CADIDO"
+            badge="Serie"
+            badge-class="bg-primary"
+            variant="catalog"
+            description="Defina vigencias, plazos de conservación y técnicas de selección para la serie."
+          />
+
+          <div class="checks">
+            <label class="check">
+              <input id="vigencia_ad" v-model="form.vigencia_ad" type="checkbox">
+              Vigencia administrativo
+            </label>
+            <label class="check">
+              <input id="vigencia_le" v-model="form.vigencia_le" type="checkbox">
+              Legal
+            </label>
+            <label class="check">
+              <input id="vigencia_confi" v-model="form.vigencia_confi" type="checkbox">
+              Confidencial / contable
+            </label>
+            <label class="check">
+              <input id="tec_elim" v-model="form.tecnica_eliminacion" type="checkbox">
+              Eliminación
+            </label>
+            <label class="check">
+              <input id="tec_cons" v-model="form.tecnica_conservacion" type="checkbox">
+              Conservación
+            </label>
+            <label class="check">
+              <input id="tec_muest" v-model="form.tecnica_muestreo" type="checkbox">
+              Muestreo
+            </label>
+          </div>
+
+          <div class="field-grid mt-3">
+            <div class="field">
+              <label>Plazo AT</label>
+              <input v-model.number="form.plazo_at" type="number" min="0" class="control">
+            </div>
+            <div class="field">
+              <label>Plazo AC</label>
+              <input v-model.number="form.plazo_ac" type="number" min="0" class="control">
+            </div>
+            <div class="field">
+              <label>Total años</label>
+              <input v-model.number="form.plazo_ta" type="number" min="0" class="control">
+            </div>
+            <div class="field">
+              <label>Clasificación reservada</label>
+              <input v-model="form.clasificacion_r" type="text" class="control">
+            </div>
+            <div class="field">
+              <label>Clasificación confidencial</label>
+              <input v-model="form.clasificacion_c" type="text" class="control">
+            </div>
+            <div class="field field-span">
+              <label>Observaciones</label>
+              <textarea v-model="form.observaciones" class="control" rows="2"></textarea>
+            </div>
+          </div>
+        </template>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-apply" :disabled="saving || (!!parentHint && !editingId)">
+            {{ submitLabel }}
+          </button>
+          <button v-if="editingId" type="button" class="btn-ghost" @click="resetForm">
+            Cancelar edición
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel list-panel">
+      <FormSectionHeader
+        :title="listSectionTitle"
+        badge="Consulta"
+        badge-class="bg-secondary"
+        variant="catalog"
+        :description="listSectionDescription"
+      />
+
+      <input
+        v-model="busqueda"
+        type="search"
+        class="search-input"
+        :placeholder="'Buscar ' + tabLabel.toLowerCase() + 's…'"
+        :aria-label="'Buscar ' + tabLabel.toLowerCase() + 's'"
+      >
+
+      <div v-if="listaFiltrada.length === 0" class="empty">
+        <p class="empty-title">No hay registros en este nivel</p>
+        <p class="empty-sub">{{ parentHint || 'Capture un registro con el formulario o ajuste la búsqueda.' }}</p>
+      </div>
+
+      <div v-else class="table-card">
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
               <tr>
                 <th>Código</th>
                 <th>Nombre</th>
                 <th>Descripción</th>
-                <th style="width: 180px;">Acciones</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in currentList" :key="item.id">
-                <td>{{ item.codigo }}</td>
-                <td>{{ item.nombre }}</td>
+              <tr v-for="item in listaFiltrada" :key="item.id">
+                <td class="cell-clave">{{ item.codigo || '—' }}</td>
+                <td class="cell-nombre">{{ item.nombre }}</td>
                 <td>{{ item.descripcion || '—' }}</td>
-                <td>
-                  <button type="button" class="btn btn-sm btn-primary me-1" @click="editar(item)">Editar</button>
-                  <button type="button" class="btn btn-sm btn-danger" @click="eliminar(item)">Eliminar</button>
+                <td class="cell-actions">
+                  <button type="button" class="btn-action btn-edit" @click="editar(item)">Editar</button>
+                  <button type="button" class="btn-action btn-delete" @click="eliminar(item)">Eliminar</button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-        <p v-if="currentList.length === 0" class="text-muted mb-0">No hay registros en este nivel.</p>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -290,6 +307,7 @@ export default {
       },
       editingId: null,
       saving: false,
+      busqueda: '',
     }
   },
   computed: {
@@ -359,12 +377,27 @@ export default {
       }
       return `Guardar ${this.tabLabel.toLowerCase()}`
     },
+    listaFiltrada() {
+      const texto = this.busqueda.trim().toLowerCase()
+      if (!texto) return this.currentList
+      return this.currentList.filter((item) =>
+        [item.nombre, item.codigo, item.descripcion]
+          .filter(Boolean)
+          .some((campo) => String(campo).toLowerCase().includes(texto))
+      )
+    },
   },
   mounted() {
     this.cargarDependencias()
     this.cargarFondos()
   },
   methods: {
+    setActiveTab(key) {
+      if (this.activeTab === key) return
+      this.activeTab = key
+      this.busqueda = ''
+      this.onTipoNivelChange()
+    },
     onTipoNivelChange() {
       this.resetForm()
       this.selected = { fondo: '', subfondo: '', seccion: '', serie: '' }
@@ -491,7 +524,7 @@ export default {
     },
     async guardar() {
       if (this.parentHint && !this.editingId) {
-        Swal.fire({ icon: 'warning', title: 'Falta contexto', text: this.parentHint })
+        Swal.fire({ icon: 'warning', title: 'Falta contexto', text: this.parentHint, confirmButtonColor: '#AB0A3D' })
         return
       }
       this.saving = true
@@ -501,7 +534,7 @@ export default {
         } else {
           await this.crear()
         }
-        Swal.fire({ icon: 'success', title: 'Éxito', text: 'Operación realizada correctamente.' })
+        Swal.fire({ icon: 'success', title: 'Éxito', text: 'Operación realizada correctamente.', confirmButtonColor: '#AB0A3D' })
         this.resetForm()
         await this.refrescarNivelActual()
       } catch (error) {
@@ -618,7 +651,7 @@ export default {
         showCancelButton: true,
         confirmButtonText: 'Eliminar',
         cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#d33',
+        confirmButtonColor: '#AB0A3D',
       })
       if (!confirm.isConfirmed) return
 
@@ -631,7 +664,7 @@ export default {
           subserie: `/admin/catalogo/subseries/${item.id}`,
         }
         await axios.delete(paths[this.activeTab])
-        Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Registro eliminado correctamente.' })
+        Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Registro eliminado correctamente.', confirmButtonColor: '#AB0A3D' })
         if (this.editingId === item.id) this.resetForm()
         await this.refrescarNivelActual()
       } catch (error) {
@@ -671,69 +704,288 @@ export default {
       if (data?.errors) {
         text = Object.values(data.errors).flat().join(' ')
       }
-      Swal.fire({ icon: 'error', title: 'Error', text })
+      Swal.fire({ icon: 'error', title: 'Error', text, confirmButtonColor: '#AB0A3D' })
     },
   },
 }
 </script>
 
 <style scoped>
-.form-container {
-  position: relative;
-  width: 100%;
-  min-height: 100vh;
-}
+.catalogo-page {
+  --surface: #ffffff;
+  --ink: #3D3935;
+  --ink-soft: #78736a;
+  --line: #e4e0d8;
+  --brand: #AB0A3D;
+  --brand-dark: #440412;
+  --brand-soft: #f7e5eb;
+  --gold: #B68400;
+  --gold-soft: #faf1dd;
 
-.caratula-background {
-  background-size: cover;
-  background-position: center;
-  padding: 40px;
-  position: relative;
-  color: #000;
-}
-
-h1 {
-  color: #000;
-  text-align: center;
-  font-size: 2em;
-  margin-bottom: 30px;
-}
-
-.caratula-form {
-  background: rgba(255, 255, 255, 0.7);
-  padding: 40px;
-  border-radius: 8px;
-  max-width: 8000px;
+  max-width: 1100px;
   margin: 0 auto;
-  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 1.75rem 1rem 3rem;
+  color: var(--ink);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
-.selector-expediente {
-  border: 1px dashed #6969f4;
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+}
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 .25rem;
+  color: var(--brand-dark);
+}
+.page-sub {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: .9rem;
+  max-width: 42rem;
+}
+.total-pill {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border-radius: 999px;
+  padding: .4rem .8rem;
 }
 
-.selector-titulo {
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: .95rem;
+  padding: 1.1rem 1.15rem 1.2rem;
+  margin-bottom: 1.15rem;
+  box-shadow: 0 8px 20px rgba(68, 4, 18, .05);
+}
+.cascade-panel { border-top: 4px solid var(--gold); }
+.form-panel { border-top: 4px solid var(--brand); }
+.list-panel { border-top: 4px solid var(--line); }
+
+.panel-title {
+  margin: 0 0 .35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--brand-dark);
+}
+.panel-help {
+  margin: 0 0 1rem;
+  color: var(--ink-soft);
+  font-size: .88rem;
 }
 
-.selector-ayuda {
-  font-size: 0.95rem;
+.level-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-bottom: 1rem;
+}
+.level-tab {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-soft);
+  font-size: .8rem;
+  font-weight: 700;
+  padding: .4rem .75rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.level-tab.tab-on {
+  background: var(--brand-soft);
+  border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+  color: var(--brand);
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .85rem .9rem;
+}
+.field-span { grid-column: 1 / -1; }
+.field label {
+  display: block;
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  margin-bottom: .3rem;
+}
+.control {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: .55rem;
+  background: #fff;
+  padding: .5rem .7rem;
+  font-size: .88rem;
+  color: var(--ink);
+}
+.control:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 16%, transparent);
+}
+.control:disabled {
+  background: #faf8f5;
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+.field-hint {
+  margin: .3rem 0 0;
+  font-size: .78rem;
+  color: var(--ink-soft);
+}
+
+.hint-box {
+  background: var(--gold-soft);
+  color: #7a5a00;
+  border-radius: .55rem;
+  padding: .65rem .8rem;
+  font-size: .84rem;
   margin-bottom: 1rem;
 }
 
-.form-control {
+.checks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .55rem .75rem;
+  margin-top: .35rem;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .84rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+  margin: 0;
+}
+.check input { accent-color: var(--brand); width: auto; }
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+  margin-top: 1.1rem;
+}
+.btn-apply {
+  border: none;
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  color: #fff;
+  font-size: .82rem;
+  font-weight: 700;
+  padding: .55rem 1rem;
+  border-radius: .6rem;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(171, 10, 61, .2);
+}
+.btn-apply:hover:not(:disabled) { filter: brightness(1.05); }
+.btn-apply:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+.btn-ghost {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font-size: .82rem;
+  font-weight: 600;
+  padding: .55rem 1rem;
+  border-radius: .6rem;
+  cursor: pointer;
+}
+.btn-ghost:hover { border-color: var(--brand); background: #f5f7fb; }
+
+.search-input {
   width: 100%;
-  padding: 8px;
-  margin-top: 8px;
-  border-radius: 4px;
+  max-width: 28rem;
+  border: 1px solid var(--line);
+  border-radius: .55rem;
+  padding: .5rem .75rem;
+  font-size: .88rem;
+  margin: .35rem 0 1rem;
+}
+.search-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 16%, transparent);
 }
 
-.btn {
-  margin-top: 20px;
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: .75rem;
+  overflow: hidden;
 }
+.table-wrap { overflow-x: auto; }
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+.admin-table th {
+  text-align: left;
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--ink-soft);
+  background: #faf8f5;
+  padding: .7rem .8rem;
+  border-bottom: 1px solid var(--line);
+}
+.admin-table td {
+  padding: .7rem .8rem;
+  font-size: .84rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.admin-table tbody tr:last-child td { border-bottom: none; }
+.admin-table tbody tr:hover { background: #fcfbf9; }
+.cell-clave { font-weight: 700; color: var(--brand); white-space: nowrap; }
+.cell-nombre { font-weight: 700; color: var(--brand-dark); }
+.cell-actions {
+  white-space: nowrap;
+  display: flex;
+  gap: .4rem;
+}
+.btn-action {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: .45rem;
+  padding: .28rem .6rem;
+  font-size: .75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-edit { color: var(--brand); }
+.btn-edit:hover { border-color: var(--brand); background: var(--brand-soft); }
+.btn-delete { color: var(--brand-dark); }
+.btn-delete:hover { border-color: var(--brand-dark); background: var(--brand-soft); }
 
-.btn-sm {
-  margin-top: 0;
+.empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  border: 1px dashed var(--line);
+  border-radius: .75rem;
+}
+.empty-title { margin: 0 0 .3rem; font-weight: 700; color: var(--brand-dark); }
+.empty-sub { margin: 0; color: var(--ink-soft); font-size: .88rem; }
+
+.mt-3 { margin-top: 1rem; }
+.mt-4 { margin-top: 1.35rem; }
+
+@media (max-width: 800px) {
+  .field-grid,
+  .checks { grid-template-columns: 1fr; }
+  .field-span { grid-column: auto; }
+  .search-input { max-width: none; }
 }
 </style>

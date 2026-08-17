@@ -80,16 +80,17 @@ class ReporteController extends Controller
         $query->where('id_subserie', $request->id_subserie);
     }
 
-    // Cargar relaciones (EAGER LOADING)
-    $query->with([
+    $expedientes = $query->with([
         'serie.seccion.fondo',
         'serie.seccion.subfondo',
         'subserie',
         'instrumentoControl',
         'unidadesDocumentales',
-    ]);
+    ])->get();
 
-    return response()->json($query->get(), 200);
+    $expedientes->each->append(['clasificacion', 'caracter']);
+
+    return response()->json($expedientes, 200);
 }
 
 
@@ -175,12 +176,40 @@ public function generarPDF(Request $request)
     return $pdf->download('reporte_expedientes.pdf');
 }
 
+    public function fondos()
+    {
+        return response()->json($this->catalogoQuery(Fondo::query(), ['id', 'nombre', 'codigo'])->get(), 200);
+    }
+
+    public function subfondos()
+    {
+        return response()->json($this->catalogoQuery(Subfondo::query(), ['id', 'nombre', 'codigo', 'id_fondo'])->get(), 200);
+    }
+
+    public function secciones()
+    {
+        return response()->json($this->catalogoQuery(Seccion::query(), ['id', 'nombre', 'codigo', 'id_fondo', 'id_subfondo'])->get(), 200);
+    }
+
     public function series()
     {
-        $series = Serie::select('id', 'nombre', 'codigo')
-            ->orderBy('nombre')
-            ->get();
+        return response()->json($this->catalogoQuery(Serie::query(), ['id', 'nombre', 'codigo', 'id_seccion'])->get(), 200);
+    }
 
-        return response()->json($series, 200);
+    public function subseries()
+    {
+        return response()->json($this->catalogoQuery(Subserie::query(), ['id', 'nombre', 'codigo', 'id_serie'])->get(), 200);
+    }
+
+    private function catalogoQuery($query, array $columns)
+    {
+        $user = Auth::user();
+        $query->select($columns)->orderBy('nombre');
+
+        if (!empty($user?->id_dependencia)) {
+            $query->where('id_dependencia', $user->id_dependencia);
+        }
+
+        return $query;
     }
 }
