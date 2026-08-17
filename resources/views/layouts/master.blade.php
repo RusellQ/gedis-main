@@ -510,8 +510,8 @@
                         {{-- @if(Auth::user()->hasRole(['administrador', 'editor','root']))
                         <a class="collapse-item" href="/series">Crear Series</a>
                         @endif --}}
-                        <a class="collapse-item {{ $navIs('cuadro', 'cuadrogeneral*') ? 'active' : '' }}" href="/cuadro">Cuadro General</a>
-                        <a class="collapse-item {{ $navIs('catalogodisposicion*') ? 'active' : '' }}" href="/catalogodisposicion">Catalogo Disposicion</a>
+                        <!--<a class="collapse-item {{ $navIs('cuadro', 'cuadrogeneral*') ? 'active' : '' }}" href="/cuadro">Cuadro General</a>-->
+                        <!--<a class="collapse-item {{ $navIs('catalogodisposicion*') ? 'active' : '' }}" href="/catalogodisposicion">Catalogo Disposicion</a>-->
                         <a class="collapse-item {{ $navIs('catalogosecciones*') ? 'active' : '' }}" href="/catalogosecciones">Catalogo Secciones</a>
                     </div>
                 </div>
