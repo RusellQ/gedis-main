@@ -156,13 +156,19 @@
               </div>
 
               <!-- Clasificación de Información -->
-              <div class="col-md-6">
-                <label>Clasificación Reservada</label>
-                <input v-model="nuevaSerie.clasificacion_r" class="form-control" placeholder="Ej. 3 años" />
-              </div>
-              <div class="col-md-6">
-                <label>Clasificación Confidencial</label>
-                <input v-model="nuevaSerie.clasificacion_c" class="form-control" placeholder="Ej. 5 años" />
+              <div class="col-12">
+                <div class="d-flex gap-4 mt-1">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="clasificacion_r"
+                      v-model="nuevaSerie.clasificacion_r" />
+                    <label class="form-check-label" for="clasificacion_r">Clasificación de la información reservada</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="clasificacion_c"
+                      v-model="nuevaSerie.clasificacion_c" />
+                    <label class="form-check-label" for="clasificacion_c">Clasificación confidencial</label>
+                  </div>
+                </div>
               </div>
 
               <!-- Observaciones -->
@@ -370,8 +376,8 @@ const nuevaSerie = ref({
   tecnica_eliminacion: false,
   tecnica_conservacion: false,
   tecnica_muestreo: false,
-  clasificacion_r: '',
-  clasificacion_c: '',
+  clasificacion_r: false,
+  clasificacion_c: false,
   observaciones: ''
 })
 
@@ -514,7 +520,7 @@ const crearSerie = async () => {
       vigencia_ad: false, vigencia_le: false, vigencia_confi: false,
       plazo_at: '', plazo_ac: '', plazo_ta: '',
       tecnica_eliminacion: false, tecnica_conservacion: false, tecnica_muestreo: false,
-      clasificacion_r: '', clasificacion_c: '',
+      clasificacion_r: false, clasificacion_c: false,
       observaciones: ''
     }
     fetchSeries()

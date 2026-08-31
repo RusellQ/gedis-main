@@ -48,8 +48,8 @@ class SerieController extends Controller
             'tecnica_eliminacion' => 'boolean',
             'tecnica_conservacion' => 'boolean',
             'tecnica_muestreo' => 'boolean',
-            'clasificacion_r' => 'nullable|string|max:255',
-            'clasificacion_c' => 'nullable|string|max:255',
+            'clasificacion_r' => 'nullable|boolean',
+            'clasificacion_c' => 'nullable|boolean',
             'observaciones' => 'nullable|string',
         ]);
 
@@ -79,8 +79,8 @@ class SerieController extends Controller
             'tecnica_eliminacion' => $request->boolean('tecnica_eliminacion'),
             'tecnica_conservacion' => $request->boolean('tecnica_conservacion'),
             'tecnica_muestreo' => $request->boolean('tecnica_muestreo'),
-            'clasificacion_r' => $request->clasificacion_r,
-            'clasificacion_c' => $request->clasificacion_c,
+            'clasificacion_r' => $request->boolean('clasificacion_r'),
+            'clasificacion_c' => $request->boolean('clasificacion_c'),
             'observaciones' => $request->observaciones,
         ]);
 
@@ -118,8 +118,8 @@ class SerieController extends Controller
             'tecnica_eliminacion' => 'boolean',
             'tecnica_conservacion' => 'boolean',
             'tecnica_muestreo' => 'boolean',
-            'clasificacion_r' => 'nullable|string|max:255',
-            'clasificacion_c' => 'nullable|string|max:255',
+            'clasificacion_r' => 'nullable|boolean',
+            'clasificacion_c' => 'nullable|boolean',
             'observaciones' => 'nullable|string',
         ]);
 
@@ -136,8 +136,8 @@ class SerieController extends Controller
             'tecnica_eliminacion' => $request->boolean('tecnica_eliminacion'),
             'tecnica_conservacion' => $request->boolean('tecnica_conservacion'),
             'tecnica_muestreo' => $request->boolean('tecnica_muestreo'),
-            'clasificacion_r' => $request->clasificacion_r,
-            'clasificacion_c' => $request->clasificacion_c,
+            'clasificacion_r' => $request->boolean('clasificacion_r'),
+            'clasificacion_c' => $request->boolean('clasificacion_c'),
             'observaciones' => $request->observaciones,
         ]);
 
