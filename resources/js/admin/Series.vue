@@ -242,7 +242,8 @@
               </div>
               <div class="col-md-6">
                 <label>Código del expediente</label>
-                <input v-model="nuevoExpediente.codigo" class="form-control" />
+                <input v-model="nuevoExpediente.codigo" class="form-control" disabled />
+                <small class="text-muted">Se asigna automáticamente según la serie o subserie.</small>
               </div>
 
               <div class="col-md-6">
@@ -305,7 +306,12 @@
 
               <div class="col-md-6">
                 <label>Información reservada y/o confidencial</label>
-                <input v-model="nuevoExpediente.informacion_reservada_y_o_confidencial" class="form-control" />
+                <select v-model="nuevoExpediente.informacion_reservada_y_o_confidencial" class="form-select">
+                  <option value="">Seleccione</option>
+                  <option value="Reservada">Reservada</option>
+                  <option value="Confidencial">Confidencial</option>
+                  <option value="Reservada y confidencial">Reservada y confidencial</option>
+                </select>
               </div>
 
               <div class="col-md-6">
@@ -341,7 +347,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { Modal } from 'bootstrap'
 import FormSectionHeader from '../components/FormSectionHeader.vue'
@@ -406,6 +412,29 @@ const nuevoExpediente = ref({
 const modalSerie = ref(null)
 const modalSubserie = ref(null)
 const modalExpediente = ref(null)
+
+const cargarSiguienteCodigo = async () => {
+  if (!selectedSerie.value) {
+    nuevoExpediente.value.codigo = ''
+    return
+  }
+  try {
+    const res = await axios.get('/expedientes/siguiente-codigo', {
+      params: {
+        id_serie: selectedSerie.value,
+        ...(selectedSubserie.value ? { id_subserie: selectedSubserie.value } : {}),
+      },
+    })
+    nuevoExpediente.value.codigo = res.data.codigo
+  } catch (error) {
+    console.error('Error al obtener el siguiente código:', error)
+    nuevoExpediente.value.codigo = ''
+  }
+}
+
+watch([selectedSerie, selectedSubserie], () => {
+  cargarSiguienteCodigo()
+})
 
 let bsModalSerie = null
 let bsModalSubserie = null
@@ -596,6 +625,7 @@ const abrirModal = (tipo) => {
       break
     case 'expediente':
       cargarReglasPorSerie(selectedSerie.value)
+      cargarSiguienteCodigo()
       bsModalExpediente.show()
       break
   }
