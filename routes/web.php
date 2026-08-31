@@ -19,6 +19,7 @@ use App\Http\Controllers\DependenciaController;
 use App\Http\Controllers\DepartamentoController;
 use App\Http\Controllers\ReglasDocumentalesController;
 use App\Http\Controllers\DashboardStatsController;
+use App\Http\Controllers\CorrespondenciaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -270,3 +271,26 @@ Route::post('/documentos', [DocumentoController::class, 'storeDocument']);
 Route::delete('/documentos/{documentId}', [DocumentoController::class, 'deleteDocument']);
 Route::post('/documentos/update/{documentId}', [DocumentoController::class, 'updateDocument']);
 Route::get('/ultimos-documentos', [DocumentoController::class, 'obtenerUltimosDocumentos']);
+
+// =============================================================================
+// RUTAS PARA MÓDULO DE CORRESPONDENCIA
+// =============================================================================
+Route::get('/correspondencia', function () {
+    return view('administrativas.correspondencia');
+})->middleware('auth');
+
+Route::get('/correspondencia/crear', function () {
+    return view('administrativas.correspondencia-editor');
+})->middleware('auth');
+
+// API REST para Correspondencia
+Route::middleware('auth')->group(function () {
+    Route::get('/api/correspondencia', [CorrespondenciaController::class, 'index']);
+    Route::post('/api/correspondencia', [CorrespondenciaController::class, 'store']);
+    Route::get('/api/correspondencia/{id}', [CorrespondenciaController::class, 'show']);
+    Route::put('/api/correspondencia/{id}', [CorrespondenciaController::class, 'update']);
+    Route::delete('/api/correspondencia/{id}', [CorrespondenciaController::class, 'destroy']);
+    Route::post('/api/correspondencia/{id}/firmar', [CorrespondenciaController::class, 'firmar']);
+    Route::get('/api/correspondencia/{id}/pdf', [CorrespondenciaController::class, 'descargarPDF']);
+});
+

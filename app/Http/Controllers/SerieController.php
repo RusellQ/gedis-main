@@ -18,13 +18,6 @@ class SerieController extends Controller
     {
         $series = Serie::where('id_seccion', $id)->get();
 
-        if ($series->isEmpty()) {
-            return response()->json([
-                'status' => 'empty',
-                'message' => 'No hay series registradas para esta sección.',
-            ], 200);
-        }
-
         return response()->json($series);
     }
 
