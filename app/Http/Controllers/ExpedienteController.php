@@ -127,6 +127,7 @@ class ExpedienteController extends Controller
                 $serie->codigo ?? '',
                 $subserie?->codigo,
                 $codigo,
+                (string) now()->year,
             ]);
 
             $clave = implode('/', $partes);

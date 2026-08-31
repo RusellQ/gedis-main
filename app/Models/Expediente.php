@@ -199,7 +199,15 @@ class Expediente extends Model
         }
 
         $resto = substr($clave, strlen($needle));
+        if ($resto === '') {
+            return false;
+        }
 
-        return $resto !== '' && !str_contains($resto, '/');
+        $segmentos = explode('/', $resto);
+        if (count($segmentos) === 1) {
+            return true;
+        }
+
+        return count($segmentos) === 2 && preg_match('/^\d{4}$/', $segmentos[1]);
     }
 }
