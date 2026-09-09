@@ -158,9 +158,10 @@ import 'tinymce/plugins/media';
 import 'tinymce/plugins/table';
 import 'tinymce/plugins/help';
 import 'tinymce/plugins/wordcount';
+// Solo el skin de la UI (.tox). NO importar content.css aquí: estiliza
+// `body { margin: 1rem }` y, al ir en el bundle global de app.js, rompe
+// el layout del sidebar en toda la app.
 import 'tinymce/skins/ui/oxide/skin.css';
-import 'tinymce/skins/ui/oxide/content.css';
-import 'tinymce/skins/content/default/content.css';
 
 window.tinymce = tinymce;
 
@@ -248,6 +249,9 @@ export default {
           target: this.$refs.editorTextarea,
           height: 400,
           menubar: true,
+          // Skin ya cargado vía import; estilos de contenido solo en el iframe.
+          skin: false,
+          content_css: false,
           plugins: [
             'advlist',
             'autolink',
@@ -270,7 +274,8 @@ export default {
           toolbar:
             'undo redo | formatselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media table | code preview | help',
           language: 'es',
-          content_style: 'body { font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif; font-size:14px }',
+          content_style:
+            'body { font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif; font-size:14px; margin:1rem; line-height:1.4 }',
           images_upload_handler: this.uploadImagen,
           file_picker_types: 'image',
           setup: (editor) => {
