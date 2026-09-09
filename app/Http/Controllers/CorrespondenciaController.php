@@ -31,33 +31,42 @@ class CorrespondenciaController extends Controller
             return response()->json(['error' => 'id_expediente requerido'], 400);
         }
 
-        $expediente = Expediente::findOrFail($idExpediente);
+        try {
+            $expediente = Expediente::findOrFail($idExpediente);
 
-        // Validar permisos: usuario debe tener acceso a este expediente
-        $this->verificarAccesoExpediente($expediente);
+            // Validar permisos: usuario debe tener acceso a este expediente
+            $this->verificarAccesoExpediente($expediente);
 
-        $correspondencias = Correspondencia::where('id_expediente', $idExpediente)
-            ->whereNull('deleted_at')
-            ->with(['usuarioAutor', 'firma'])
-            ->orderBy('fecha_creacion', 'desc')
-            ->get()
-            ->map(function ($corr) {
-                return [
-                    'id' => $corr->id,
-                    'numero_consecutivo' => $corr->numero_consecutivo,
-                    'asunto' => $corr->asunto,
-                    'remitente' => $corr->remitente,
-                    'destinatario' => $corr->destinatario,
-                    'clasificacion' => $corr->clasificacion,
-                    'estado' => $corr->estado,
-                    'usuario_autor' => $corr->usuarioAutor ? $corr->usuarioAutor->nombre . ' ' . $corr->usuarioAutor->apellido_paterno : 'Desconocido',
-                    'fecha_creacion' => $corr->fecha_creacion->format('Y-m-d H:i:s'),
-                    'fecha_firma' => $corr->firma?->timestamp_firma?->format('Y-m-d H:i:s'),
-                    'tiene_firma_valida' => $corr->tieneFirmaValida(),
-                ];
-            });
+            $correspondencias = Correspondencia::where('id_expediente', $idExpediente)
+                ->whereNull('deleted_at')
+                ->with(['usuarioAutor', 'firma'])
+                ->orderBy('fecha_creacion', 'desc')
+                ->get()
+                ->map(function ($corr) {
+                    return [
+                        'id' => $corr->id,
+                        'numero_consecutivo' => $corr->numero_consecutivo,
+                        'asunto' => $corr->asunto,
+                        'remitente' => $corr->remitente,
+                        'destinatario' => $corr->destinatario,
+                        'clasificacion' => $corr->clasificacion,
+                        'estado' => $corr->estado,
+                        'usuario_autor' => $corr->usuarioAutor ? trim($corr->usuarioAutor->nombre . ' ' . $corr->usuarioAutor->apellido_paterno) : 'Desconocido',
+                        'fecha_creacion' => $corr->fecha_creacion?->format('Y-m-d H:i:s'),
+                        'fecha_firma' => $corr->firma?->timestamp_firma?->format('Y-m-d H:i:s'),
+                        'tiene_firma_valida' => $corr->tieneFirmaValida(),
+                    ];
+                });
 
-        return response()->json($correspondencias);
+            return response()->json($correspondencias);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['error' => 'El expediente no existe.'], 404);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            return response()->json(['error' => $e->getMessage() ?: 'No tiene acceso a este expediente.'], $e->getStatusCode());
+        } catch (\Throwable $e) {
+            \Log::error('Error al listar correspondencias: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'Error al cargar correspondencias.'], 500);
+        }
     }
 
     /**
@@ -125,31 +134,36 @@ class CorrespondenciaController extends Controller
             return response()->json(['error' => 'No tiene permisos para crear correspondencia'], 403);
         }
 
-        // Obtener próximo número consecutivo
-        $proximoConsecutivo = Correspondencia::obtenerProximoConsecutivo($expediente->id);
+        try {
+            // Obtener próximo número consecutivo
+            $proximoConsecutivo = Correspondencia::obtenerProximoConsecutivo($expediente->id);
 
-        // Crear correspondencia
-        $correspondencia = Correspondencia::create([
-            'id_expediente' => $expediente->id,
-            'numero_consecutivo' => $proximoConsecutivo,
-            'id_usuario_autor' => Auth::id(),
-            'remitente' => $validado['remitente'],
-            'destinatario' => $validado['destinatario'],
-            'asunto' => $validado['asunto'],
-            'contenido' => $validado['contenido'],
-            'clasificacion' => $validado['clasificacion'],
-            'estado' => Correspondencia::ESTADO_BORRADOR,
-        ]);
+            // Crear correspondencia
+            $correspondencia = Correspondencia::create([
+                'id_expediente' => $expediente->id,
+                'numero_consecutivo' => $proximoConsecutivo,
+                'id_usuario_autor' => Auth::id(),
+                'remitente' => $validado['remitente'],
+                'destinatario' => $validado['destinatario'],
+                'asunto' => $validado['asunto'],
+                'contenido' => $validado['contenido'],
+                'clasificacion' => $validado['clasificacion'],
+                'estado' => Correspondencia::ESTADO_BORRADOR,
+            ]);
 
-        // Registrar auditoría
-        $this->registrarAcceso($correspondencia, 'crear');
+            // Registrar auditoría
+            $this->registrarAcceso($correspondencia, 'crear');
 
-        return response()->json([
-            'id' => $correspondencia->id,
-            'numero_consecutivo' => $correspondencia->numero_consecutivo,
-            'estado' => $correspondencia->estado,
-            'mensaje' => 'Correspondencia creada como borrador.',
-        ], 201);
+            return response()->json([
+                'id' => $correspondencia->id,
+                'numero_consecutivo' => $correspondencia->numero_consecutivo,
+                'estado' => $correspondencia->estado,
+                'mensaje' => 'Correspondencia creada como borrador.',
+            ], 201);
+        } catch (\Throwable $e) {
+            \Log::error('Error al crear correspondencia: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'Error al guardar el documento. Contacte al administrador.'], 500);
+        }
     }
 
     /**

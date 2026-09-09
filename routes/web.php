@@ -217,6 +217,8 @@ Route::get('/subseries/{id}/expedientes', [ExpedienteController::class, 'porSubs
 Route::post('/guardarexpediente', [ExpedienteController::class, 'store']);
 
 Route::post('/unidades-documentales', [UnidadDocumentalController::class, 'store']);
+Route::get('/series/{id}/unidades-documentales', [UnidadDocumentalController::class, 'porSerie']);
+Route::get('/expedientes/{id}/unidades-documentales', [UnidadDocumentalController::class, 'porExpediente']);
 
 
 Route::get('/catalogos/fondos', [ReporteController::class, 'fondos']);

@@ -80,6 +80,7 @@
                     <!-- Vista para edición -->
                     <textarea
                       v-if="modo !== 'ver'"
+                      id="correspondencia-editor-textarea"
                       ref="editorTextarea"
                       v-model="formulario.contenido"
                       style="height: 400px"
@@ -133,6 +134,35 @@
 <script>
 import Swal from 'sweetalert2';
 import { Modal } from 'bootstrap';
+
+// TinyMCE self-hosted (npm) — sin esto, `window.tinymce` nunca existe y el
+// editor queda como un <textarea> plano sin soporte de imágenes/tablas.
+import tinymce from 'tinymce/tinymce';
+import 'tinymce/models/dom/model';
+import 'tinymce/themes/silver';
+import 'tinymce/icons/default';
+import 'tinymce/plugins/advlist';
+import 'tinymce/plugins/autolink';
+import 'tinymce/plugins/lists';
+import 'tinymce/plugins/link';
+import 'tinymce/plugins/image';
+import 'tinymce/plugins/charmap';
+import 'tinymce/plugins/preview';
+import 'tinymce/plugins/anchor';
+import 'tinymce/plugins/searchreplace';
+import 'tinymce/plugins/visualblocks';
+import 'tinymce/plugins/code';
+import 'tinymce/plugins/fullscreen';
+import 'tinymce/plugins/insertdatetime';
+import 'tinymce/plugins/media';
+import 'tinymce/plugins/table';
+import 'tinymce/plugins/help';
+import 'tinymce/plugins/wordcount';
+import 'tinymce/skins/ui/oxide/skin.css';
+import 'tinymce/skins/ui/oxide/content.css';
+import 'tinymce/skins/content/default/content.css';
+
+window.tinymce = tinymce;
 
 export default {
   name: 'CorrespondenciaEditor',
@@ -212,8 +242,9 @@ export default {
     inicializarEditor() {
       // Inicializar TinyMCE cuando el modal esté visible
       if (window.tinymce && this.$refs.editorTextarea) {
+        // Evitar doble inicialización si el modal se reabre sin destruir el editor previo.
+        window.tinymce.remove('#correspondencia-editor-textarea');
         window.tinymce.init({
-          selector: 'textarea',
           target: this.$refs.editorTextarea,
           height: 400,
           menubar: true,

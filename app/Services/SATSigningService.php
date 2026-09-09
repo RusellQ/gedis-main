@@ -26,9 +26,9 @@ class SATSigningService
 
     public function __construct()
     {
-        $this->satEndpoint = config('services.sat.signing_endpoint', env('SAT_SIGNING_ENDPOINT'));
-        $this->satApiKey = config('services.sat.signing_api_key', env('SAT_SIGNING_API_KEY'));
-        $this->satCertPath = config('services.sat.cert_path', env('SAT_SIGNING_CERT_PATH'));
+        $this->satEndpoint = config('services.sat.signing_endpoint', env('SAT_SIGNING_ENDPOINT')) ?? '';
+        $this->satApiKey = config('services.sat.signing_api_key', env('SAT_SIGNING_API_KEY')) ?? '';
+        $this->satCertPath = config('services.sat.cert_path', env('SAT_SIGNING_CERT_PATH')) ?? '';
     }
 
     /**

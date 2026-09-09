@@ -57,7 +57,7 @@ class ExpedienteController extends Controller
 
     public function getExpedienteById($id)
     {
-        $expediente = Expediente::with(['serie', 'instrumentoControl'])->find($id);
+        $expediente = Expediente::with(['serie', 'instrumentoControl', 'unidadesDocumentales'])->find($id);
 
         if (!$expediente) {
             return response()->json(['message' => 'Expediente no encontrado'], 404);
@@ -134,7 +134,7 @@ class ExpedienteController extends Controller
             'no_legajos'             => $request->no_legajos,
             'no_hojas'               => $request->no_hojas,
             'no_caja'                => $request->no_caja,
-            'ubicacion_topografica'  => $request->ubicacion_topografica,
+            'ubicacion_topografica'  => $request->ubicacion_topografica ?? '',
             'preservacion'           => $request->preservacion,
             'observacion'            => $request->observacion,
             'informacion_reservada_y_o_confidencial' => $request->informacion_reservada_y_o_confidencial
@@ -441,21 +441,27 @@ class ExpedienteController extends Controller
 
     public function porSerie($id)
     {
-        $expedientes = Expediente::with(['serie.seccion.fondo', 'instrumentoControl'])
-            ->where('id_serie', $id)
+        $expedientes = Expediente::with(['serie.seccion.fondo', 'subserie.serie.seccion.fondo', 'instrumentoControl'])
+            ->where(function ($query) use ($id) {
+                $query->where('id_serie', $id)
+                      ->orWhereHas('subserie', function ($q) use ($id) {
+                          $q->where('id_serie', $id);
+                      });
+            })
             ->get()
             ->map(function ($exp) {
                 $base = $exp->toArray();
                 $reglas = ReglasDocumentalesService::reglasExpedienteParaApi($exp);
-                $seccionObj = optional($exp->serie)->seccion;
+                $serieObj = $exp->serie ?? optional($exp->subserie)->serie;
+                $seccionObj = optional($serieObj)->seccion;
                 $fondoObj = optional($seccionObj)->fondo;
                 return array_merge($base, $reglas, [
                     'id_fondo' => $seccionObj ? $seccionObj->id_fondo : null,
-                    'id_seccion' => $exp->serie ? $exp->serie->id_seccion : null,
-                    'id_serie' => $exp->id_serie,
+                    'id_seccion' => $seccionObj ? $seccionObj->id : null,
+                    'id_serie' => $exp->id_serie ?? optional($exp->subserie)->id_serie,
                     'fondo' => $fondoObj ? $fondoObj->nombre : null,
                     'seccion' => $seccionObj ? $seccionObj->nombre : null,
-                    'serie' => optional($exp->serie)->nombre,
+                    'serie' => optional($serieObj)->nombre,
                 ]);
             });
 

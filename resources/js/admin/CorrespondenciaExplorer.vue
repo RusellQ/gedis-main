@@ -239,12 +239,12 @@ export default {
       if (!this.idExpediente) return;
       this.cargando = true;
       try {
-        const [resCorr, resExp] = await Promise.all([
+        const [resCorr, resUnidades] = await Promise.all([
           axios.get(`/api/correspondencia?id_expediente=${this.idExpediente}`),
-          axios.get(`/expedienteid/${this.idExpediente}`),
+          axios.get(`/expedientes/${this.idExpediente}/unidades-documentales`),
         ]);
-        this.correspondencias = resCorr.data;
-        this.unidades = resExp.data.unidades_documentales || resExp.data.unidades || [];
+        this.correspondencias = Array.isArray(resCorr.data) ? resCorr.data : [];
+        this.unidades = Array.isArray(resUnidades.data) ? resUnidades.data : [];
       } catch (error) {
         console.error('Error al cargar explorer de correspondencia:', error);
       } finally {

@@ -31,4 +31,10 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'sat' => [
+        'signing_endpoint' => env('SAT_SIGNING_ENDPOINT', ''),
+        'signing_api_key' => env('SAT_SIGNING_API_KEY', ''),
+        'cert_path' => env('SAT_SIGNING_CERT_PATH', ''),
+    ],
+
 ];
