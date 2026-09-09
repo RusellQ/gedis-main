@@ -27,9 +27,10 @@ class User extends Authenticatable
     public function hasRole($roles)
     {
         $roles = is_array($roles) ? $roles : [$roles];
+        $misRoles = is_array($this->roles) ? $this->roles : [];
 
         foreach ($roles as $role) {
-            if (in_array($role, $this->roles)) {
+            if (in_array($role, $misRoles)) {
                 return true;
             }
         }

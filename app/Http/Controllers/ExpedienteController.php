@@ -57,7 +57,7 @@ class ExpedienteController extends Controller
 
     public function getExpedienteById($id)
     {
-        $expediente = Expediente::with(['serie', 'instrumentoControl'])->find($id);
+        $expediente = Expediente::with(['serie', 'instrumentoControl', 'unidadesDocumentales'])->find($id);
 
         if (!$expediente) {
             return response()->json(['message' => 'Expediente no encontrado'], 404);
@@ -188,29 +188,37 @@ class ExpedienteController extends Controller
             if ($user->hasRole('root')) {
                 $expedientes = Expediente::with($with)->get();
             } else {
-                if (!$user->id_dependencia || !$user->id_departamento) {
-                    return response()->json(['error' => 'El usuario no tiene asignada una dependencia o departamento.'], 403);
+                $query = Expediente::with($with);
+                if ($user->id_dependencia) {
+                    $query->where('id_dependencia', $user->id_dependencia);
                 }
-
-                $expedientes = Expediente::where('id_dependencia', $user->id_dependencia)
-                    ->where('id_departamento', $user->id_departamento)
-                    ->with($with)
-                    ->get();
+                if ($user->id_departamento) {
+                    $query->where('id_departamento', $user->id_departamento);
+                }
+                $expedientes = $query->get();
             }
 
             $datos = $expedientes->map(function ($exp) {
                 $base = ReglasDocumentalesService::formatearExpedienteParaApi($exp);
 
+                $seccionObj = optional($exp->serie)->seccion;
+                $fondoObj = optional($seccionObj)->fondo;
+
                 return array_merge($base, [
-                    'fondo' => optional(optional($exp->serie)->seccion->fondo)->nombre,
+                    'id_fondo' => $seccionObj ? $seccionObj->id_fondo : null,
+                    'id_seccion' => $exp->serie ? $exp->serie->id_seccion : null,
+                    'id_serie' => $exp->id_serie,
+                    'fondo' => $fondoObj ? $fondoObj->nombre : null,
                     'subfondo' => optional(optional($exp->serie)->seccion->subfondo)->nombre,
-                    'seccion' => optional(optional($exp->serie)->seccion)->nombre,
+                    'seccion' => $seccionObj ? $seccionObj->nombre : null,
                     'serie' => optional($exp->serie)->nombre,
                     'subserie' => optional($exp->subserie)->nombre,
                     'serie_detalle' => $exp->serie ? [
                         'id' => $exp->serie->id,
                         'nombre' => $exp->serie->nombre,
                         'codigo' => $exp->serie->codigo,
+                        'id_seccion' => $exp->serie->id_seccion,
+                        'id_fondo' => $seccionObj ? $seccionObj->id_fondo : null,
                         'vigencia_ad' => (bool) $exp->serie->vigencia_ad,
                         'vigencia_le' => (bool) $exp->serie->vigencia_le,
                         'vigencia_confi' => (bool) $exp->serie->vigencia_confi,
@@ -262,12 +270,12 @@ class ExpedienteController extends Controller
         ])->whereNotNull('fecha_cierre');
 
         if (!$user->hasRole('root')) {
-            if (!$user->id_dependencia || !$user->id_departamento) {
-                return response()->json(['error' => 'El usuario no tiene asignada una dependencia o departamento.'], 403);
+            if ($user->id_dependencia) {
+                $query->where('id_dependencia', $user->id_dependencia);
             }
-
-            $query->where('id_dependencia', $user->id_dependencia)
-                ->where('id_departamento', $user->id_departamento);
+            if ($user->id_departamento) {
+                $query->where('id_departamento', $user->id_departamento);
+            }
         }
 
         $expedientes = $query->get()->filter(fn ($exp) => $this->esExpedienteVencido($exp));
@@ -325,12 +333,12 @@ class ExpedienteController extends Controller
         ])->whereNotNull('fecha_cierre');
 
         if (!$user->hasRole('root')) {
-            if (!$user->id_dependencia || !$user->id_departamento) {
-                return response()->json(['error' => 'El usuario no tiene asignada una dependencia o departamento.'], 403);
+            if ($user->id_dependencia) {
+                $query->where('id_dependencia', $user->id_dependencia);
             }
-
-            $query->where('id_dependencia', $user->id_dependencia)
-                ->where('id_departamento', $user->id_departamento);
+            if ($user->id_departamento) {
+                $query->where('id_departamento', $user->id_departamento);
+            }
         }
 
         if ($request->filled('serie_id')) {
@@ -470,27 +478,52 @@ class ExpedienteController extends Controller
 
     public function porSerie($id)
     {
-        $expedientes = Expediente::with(['serie', 'instrumentoControl'])
-            ->where('id_serie', $id)
-            ->whereNull('id_subserie')
+        $expedientes = Expediente::with(['serie.seccion.fondo', 'subserie.serie.seccion.fondo', 'instrumentoControl'])
+            ->where(function ($query) use ($id) {
+                $query->where('id_serie', $id)
+                      ->orWhereHas('subserie', function ($q) use ($id) {
+                          $q->where('id_serie', $id);
+                      });
+            })
             ->get()
-            ->map(fn ($exp) => array_merge(
-                $exp->toArray(),
-                ReglasDocumentalesService::reglasExpedienteParaApi($exp)
-            ));
+            ->map(function ($exp) {
+                $base = $exp->toArray();
+                $reglas = ReglasDocumentalesService::reglasExpedienteParaApi($exp);
+                $serieObj = $exp->serie ?? optional($exp->subserie)->serie;
+                $seccionObj = optional($serieObj)->seccion;
+                $fondoObj = optional($seccionObj)->fondo;
+                return array_merge($base, $reglas, [
+                    'id_fondo' => $seccionObj ? $seccionObj->id_fondo : null,
+                    'id_seccion' => $seccionObj ? $seccionObj->id : null,
+                    'id_serie' => $exp->id_serie ?? optional($exp->subserie)->id_serie,
+                    'fondo' => $fondoObj ? $fondoObj->nombre : null,
+                    'seccion' => $seccionObj ? $seccionObj->nombre : null,
+                    'serie' => optional($serieObj)->nombre,
+                ]);
+            });
 
         return response()->json($expedientes);
     }
 
     public function porSubserie($id)
     {
-        $expedientes = Expediente::with(['serie', 'instrumentoControl'])
+        $expedientes = Expediente::with(['serie.seccion.fondo', 'instrumentoControl'])
             ->where('id_subserie', $id)
             ->get()
-            ->map(fn ($exp) => array_merge(
-                $exp->toArray(),
-                ReglasDocumentalesService::reglasExpedienteParaApi($exp)
-            ));
+            ->map(function ($exp) {
+                $base = $exp->toArray();
+                $reglas = ReglasDocumentalesService::reglasExpedienteParaApi($exp);
+                $seccionObj = optional($exp->serie)->seccion;
+                $fondoObj = optional($seccionObj)->fondo;
+                return array_merge($base, $reglas, [
+                    'id_fondo' => $seccionObj ? $seccionObj->id_fondo : null,
+                    'id_seccion' => $exp->serie ? $exp->serie->id_seccion : null,
+                    'id_serie' => $exp->id_serie,
+                    'fondo' => $fondoObj ? $fondoObj->nombre : null,
+                    'seccion' => $seccionObj ? $seccionObj->nombre : null,
+                    'serie' => optional($exp->serie)->nombre,
+                ]);
+            });
 
         return response()->json($expedientes);
     }

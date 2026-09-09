@@ -435,7 +435,7 @@
 
             @php
                 $navIs = fn (...$patterns) => request()->is(...$patterns);
-                $navExpedientes = $navIs('cargarexpedientes', 'expedientes', 'capturar', 'caratula-v2', 'consultar', 'buscar', 'expedienteindividual');
+                $navExpedientes = $navIs('cargarexpedientes', 'expedientes', 'capturar', 'caratula-v2', 'consultar', 'buscar', 'expedienteindividual', 'correspondencia', 'correspondencia/*');
                 $navArchivo = $navIs('tramite', 'concentracion', 'historico', 'vencidos', 'expedientes/vencidos*', 'bajas', 'indexbaja');
                 $navCatalogo = $navIs('fondos', 'indexfondos', 'series', 'cuadro', 'cuadrogeneral*', 'catalogodisposicion*', 'catalogosecciones*');
                 $navReportes = $navIs('reportes', 'reportes/*');
@@ -468,6 +468,7 @@
                         <a class="collapse-item {{ $navIs('caratula-v2') ? 'active' : '' }}" href="/caratula-v2">Carátula de expediente</a>
                         @endif
                         <a class="collapse-item {{ $navIs('consultar', 'buscar', 'expedienteindividual') ? 'active' : '' }}" href="/consultar">Consultar caratulas</a>
+                        <a class="collapse-item {{ $navIs('correspondencia', 'correspondencia/*') ? 'active' : '' }}" href="/correspondencia">Correspondencia</a>
                     </div>
                 </div>
             </li>

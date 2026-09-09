@@ -47,4 +47,37 @@ class UnidadDocumentalController extends Controller
 
         return response()->json($unidad, 201);
     }
+
+    /**
+     * Obtener unidades documentales directamente de la tabla `unidades_documentales`
+     * asociadas a la serie documental (incluyendo expedientes de sus subseries).
+     */
+    public function porSerie($id)
+    {
+        $unidades = UnidadDocumental::whereHas('expediente', function ($query) use ($id) {
+            $query->where('id_serie', $id)
+                  ->orWhereHas('subserie', function ($q) use ($id) {
+                      $q->where('id_serie', $id);
+                  });
+        })
+        ->with('expediente:id,nombre,codigo,clave,id_serie,id_subserie')
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        return response()->json($unidades);
+    }
+
+    /**
+     * Obtener unidades documentales directamente de la tabla `unidades_documentales`
+     * para un expediente específico.
+     */
+    public function porExpediente($id)
+    {
+        $unidades = UnidadDocumental::where('id_expediente', $id)
+            ->with('expediente:id,nombre,codigo,clave')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($unidades);
+    }
 }
