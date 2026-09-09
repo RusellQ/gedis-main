@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Services\ReglasDocumentalesService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
+use InvalidArgumentException;
 
 class Expediente extends Model
 {
@@ -97,5 +99,115 @@ class Expediente extends Model
     public function getAmpliacionPeriodoReservaAttribute()
     {
         return null;
+    }
+
+    /**
+     * Siguiente código numérico del cajón (serie sin subserie, o una subserie).
+     * No reutiliza huecos ni números de expedientes dados de baja.
+     */
+    public static function siguienteCodigoPara(int $serieId, ?int $subserieId = null): string
+    {
+        $serie = Serie::with(['seccion.fondo', 'seccion.subfondo'])->findOrFail($serieId);
+        $subserie = null;
+
+        if ($subserieId) {
+            $subserie = Subserie::findOrFail($subserieId);
+            if ((int) $subserie->id_serie !== $serieId) {
+                throw new InvalidArgumentException('La subserie no pertenece a la serie indicada.');
+            }
+        }
+
+        $vivos = static::query()
+            ->where('id_serie', $serieId)
+            ->when(
+                $subserieId,
+                fn ($q) => $q->where('id_subserie', $subserieId),
+                fn ($q) => $q->whereNull('id_subserie')
+            )
+            ->pluck('codigo');
+
+        $max = static::maxEnteroDeCodigos($vivos);
+
+        if (Schema::hasTable('expedientes_baja')) {
+            $prefix = implode('/', array_filter([
+                $serie->seccion->fondo->codigo ?? '',
+                optional($serie->seccion->subfondo)->codigo,
+                $serie->seccion->codigo ?? '',
+                $serie->codigo ?? '',
+                $subserie?->codigo,
+            ]));
+
+            $bajas = ExpedienteBaja::query()
+                ->where('id_serie', $serieId)
+                ->get(['codigo', 'clave']);
+
+            foreach ($bajas as $baja) {
+                if (!static::bajaPerteneceAlCajon($baja->clave, $prefix)) {
+                    continue;
+                }
+
+                $n = static::codigoAEntero($baja->codigo);
+                if ($n === 0 && $baja->clave) {
+                    $n = static::codigoAEntero((string) last(explode('/', $baja->clave)));
+                }
+
+                if ($n > $max) {
+                    $max = $n;
+                }
+            }
+        }
+
+        return (string) ($max + 1);
+    }
+
+    private static function codigoAEntero(?string $codigo): int
+    {
+        if ($codigo === null) {
+            return 0;
+        }
+
+        $codigo = trim($codigo);
+        if ($codigo === '' || !preg_match('/^\d+$/', $codigo)) {
+            return 0;
+        }
+
+        return (int) $codigo;
+    }
+
+    private static function maxEnteroDeCodigos($codigos): int
+    {
+        $max = 0;
+        foreach ($codigos as $codigo) {
+            $n = static::codigoAEntero($codigo);
+            if ($n > $max) {
+                $max = $n;
+            }
+        }
+
+        return $max;
+    }
+
+    private static function bajaPerteneceAlCajon(?string $clave, string $prefix): bool
+    {
+        if ($prefix === '' || !$clave) {
+            return false;
+        }
+
+        $needle = $prefix . '/';
+        if (!str_starts_with($clave, $needle)) {
+            return false;
+        }
+
+        $resto = substr($clave, strlen($needle));
+        if ($resto === '') {
+            return false;
+        }
+
+        $segmentos = explode('/', $resto);
+        if (count($segmentos) === 1) {
+            return true;
+        }
+
+        return count($segmentos) === 2 && preg_match('/^\d{4}$/', $segmentos[1]);
     }
 }

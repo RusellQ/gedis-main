@@ -72,7 +72,7 @@ class ExpedienteController extends Controller
     {
         $request->validate([
             'nombre'                 => 'required|string|max:255',
-            'codigo'                 => 'required|string|max:50',
+            'codigo'                 => 'nullable|string|max:50',
             'id_serie'               => 'required|exists:series,id',
             'id_subserie'            => 'nullable|exists:subseries,id',
             'estado'                 => 'required|in:en_tramite,en_historico,en_concentracion',
@@ -100,51 +100,65 @@ class ExpedienteController extends Controller
         ]);
 
         $user = auth()->user();
+        $idSubserie = $request->filled('id_subserie') ? (int) $request->id_subserie : null;
 
-        $serie = Serie::with('seccion.subfondo', 'seccion.fondo')
-            ->findOrFail($request->id_serie);
+        if ($idSubserie) {
+            $subserieCheck = Subserie::findOrFail($idSubserie);
+            if ((int) $subserieCheck->id_serie !== (int) $request->id_serie) {
+                return response()->json([
+                    'message' => 'La subserie no pertenece a la serie indicada.',
+                ], 422);
+            }
+        }
 
-        $subserie = $request->filled('id_subserie')
-            ? Subserie::findOrFail($request->id_subserie)
-            : null;
+        $expediente = DB::transaction(function () use ($request, $user, $idSubserie) {
+            Serie::whereKey($request->id_serie)->lockForUpdate()->firstOrFail();
 
-        $partes = array_filter([
-            $serie->seccion->fondo->codigo ?? '',
-            optional($serie->seccion->subfondo)->codigo,
-            $serie->seccion->codigo ?? '',
-            $serie->codigo ?? '',
-            $subserie?->codigo,
-            $request->codigo,
-        ]);
+            $serie = Serie::with('seccion.subfondo', 'seccion.fondo')
+                ->findOrFail($request->id_serie);
 
-        $clave = implode('/', $partes);
-        $instrumento = InstrumentoControlService::resolverPorSerie($request->id_serie);
+            $subserie = $idSubserie ? Subserie::findOrFail($idSubserie) : null;
+            $codigo = Expediente::siguienteCodigoPara((int) $request->id_serie, $idSubserie);
 
-        $expediente = Expediente::create([
-            'nombre'                 => $request->nombre,
-            'codigo'                 => $request->codigo,
-            'clave'                  => $clave,
-            'id_serie'               => $request->id_serie,
-            'id_subserie'            => $request->id_subserie,
-            'id_instrumento_control' => $instrumento?->id,
-            'estado'                 => $request->estado,
-            'fecha_apertura'         => $request->fecha_apertura,
-            'fecha_cierre'           => $request->fecha_cierre,
-            'fecha_creacion'         => $request->fecha_creacion,
-            'no_legajos'             => $request->no_legajos,
-            'no_hojas'               => $request->no_hojas,
-            'no_caja'                => $request->no_caja,
-            'ubicacion_topografica'  => $request->ubicacion_topografica ?? '',
-            'preservacion'           => $request->preservacion,
-            'observacion'            => $request->observacion,
-            'informacion_reservada_y_o_confidencial' => $request->informacion_reservada_y_o_confidencial
-                ?? $request->caracter_de_la_informacion,
-            'fecha_clasificacion'    => $request->fecha_clasificacion,
-            'rubrica_titular_de_la_unidad' => $request->rubrica_titular_de_la_unidad,
-            'fecha_desclasificacion' => $request->fecha_desclasificacion,
-            'id_dependencia'         => $user->id_dependencia,
-            'id_departamento'        => $user->id_departamento,
-        ]);
+            $partes = array_filter([
+                $serie->seccion->fondo->codigo ?? '',
+                optional($serie->seccion->subfondo)->codigo,
+                $serie->seccion->codigo ?? '',
+                $serie->codigo ?? '',
+                $subserie?->codigo,
+                $codigo,
+                (string) now()->year,
+            ]);
+
+            $clave = implode('/', $partes);
+            $instrumento = InstrumentoControlService::resolverPorSerie($request->id_serie);
+
+            return Expediente::create([
+                'nombre'                 => $request->nombre,
+                'codigo'                 => $codigo,
+                'clave'                  => $clave,
+                'id_serie'               => $request->id_serie,
+                'id_subserie'            => $idSubserie,
+                'id_instrumento_control' => $instrumento?->id,
+                'estado'                 => $request->estado,
+                'fecha_apertura'         => $request->fecha_apertura,
+                'fecha_cierre'           => $request->fecha_cierre,
+                'fecha_creacion'         => $request->fecha_creacion,
+                'no_legajos'             => $request->no_legajos,
+                'no_hojas'               => $request->no_hojas,
+                'no_caja'                => $request->no_caja,
+                'ubicacion_topografica'  => $request->ubicacion_topografica,
+                'preservacion'           => $request->preservacion,
+                'observacion'            => $request->observacion,
+                'informacion_reservada_y_o_confidencial' => $request->informacion_reservada_y_o_confidencial
+                    ?? $request->caracter_de_la_informacion,
+                'fecha_clasificacion'    => $request->fecha_clasificacion,
+                'rubrica_titular_de_la_unidad' => $request->rubrica_titular_de_la_unidad,
+                'fecha_desclasificacion' => $request->fecha_desclasificacion,
+                'id_dependencia'         => $user->id_dependencia,
+                'id_departamento'        => $user->id_departamento,
+            ]);
+        });
 
         ReglasDocumentalesService::aplicarReglasExpediente($expediente, $request->all());
         $expediente->load(['serie', 'instrumentoControl']);
@@ -437,6 +451,29 @@ class ExpedienteController extends Controller
         return Carbon::parse($expediente->fecha_cierre)
             ->addYears($plazo)
             ->toDateString();
+    }
+
+    public function siguienteCodigo(Request $request)
+    {
+        $request->validate([
+            'id_serie' => 'required|exists:series,id',
+            'id_subserie' => 'nullable|exists:subseries,id',
+        ]);
+
+        $idSubserie = $request->filled('id_subserie') ? (int) $request->id_subserie : null;
+
+        if ($idSubserie) {
+            $subserie = Subserie::findOrFail($idSubserie);
+            if ((int) $subserie->id_serie !== (int) $request->id_serie) {
+                return response()->json([
+                    'message' => 'La subserie no pertenece a la serie indicada.',
+                ], 422);
+            }
+        }
+
+        return response()->json([
+            'codigo' => Expediente::siguienteCodigoPara((int) $request->id_serie, $idSubserie),
+        ]);
     }
 
     public function porSerie($id)

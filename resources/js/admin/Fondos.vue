@@ -81,7 +81,8 @@
             </div>
             <div class="form-group">
               <label>Código del expediente</label>
-              <input v-model="nuevoExpediente.codigo" class="form-control" required />
+              <input v-model="nuevoExpediente.codigo" class="form-control campo-solo-lectura" disabled />
+              <p class="text-muted small mt-1 mb-0">Se asigna automáticamente según la serie o subserie.</p>
             </div>
 
             <div class="form-group">
@@ -161,7 +162,12 @@
           <div class="field-grid">
             <div class="form-group">
               <label>Información reservada y/o confidencial</label>
-              <input v-model="nuevoExpediente.informacion_reservada_y_o_confidencial" class="form-control" />
+              <select v-model="nuevoExpediente.informacion_reservada_y_o_confidencial" class="form-control">
+                <option value="">Seleccione</option>
+                <option value="Reservada">Reservada</option>
+                <option value="Confidencial">Confidencial</option>
+                <option value="Reservada y confidencial">Reservada y confidencial</option>
+              </select>
             </div>
 
             <div class="form-group">
@@ -195,7 +201,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 import FormSectionHeader from '../components/FormSectionHeader.vue'
 import ReglasDocumentalesPanel from '../components/ReglasDocumentalesPanel.vue'
@@ -255,6 +261,29 @@ const resetExpedienteForm = () => {
     fecha_desclasificacion: '',
   }
 }
+
+const cargarSiguienteCodigo = async () => {
+  if (!selectedSerie.value) {
+    nuevoExpediente.value.codigo = ''
+    return
+  }
+  try {
+    const res = await axios.get('/expedientes/siguiente-codigo', {
+      params: {
+        id_serie: selectedSerie.value,
+        ...(selectedSubserie.value ? { id_subserie: selectedSubserie.value } : {}),
+      },
+    })
+    nuevoExpediente.value.codigo = res.data.codigo
+  } catch (error) {
+    console.error('Error al obtener el siguiente código:', error)
+    nuevoExpediente.value.codigo = ''
+  }
+}
+
+watch([selectedSerie, selectedSubserie], () => {
+  cargarSiguienteCodigo()
+})
 
 const cargarReglasPorSerie = async (serieId) => {
   if (!serieId) {
@@ -360,6 +389,7 @@ const crearExpediente = async () => {
 
     alert('Expediente creado correctamente.')
     resetExpedienteForm()
+    await cargarSiguienteCodigo()
   } catch (e) {
     console.error('Error al crear el expediente:', e?.response?.data || e.message)
     alert('Hubo un error al guardar el expediente. Verifica los datos e intenta nuevamente.')

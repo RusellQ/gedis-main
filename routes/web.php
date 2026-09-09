@@ -191,6 +191,7 @@ Route::delete('/bajaexpediente/{id}', [ExpedienteController::class, 'darDeBaja']
     ->name('expediente.baja')
     ->middleware('auth');
 Route::get('/expedienteid/{id}', [ExpedienteController::class, 'getExpedienteById']);
+Route::get('/expedientes/siguiente-codigo', [ExpedienteController::class, 'siguienteCodigo']);
 Route::get('/expedientes/vencidos', [ExpedienteController::class, 'vencidos']);
 Route::get('/expedientes/vencidos/pdf', [ExpedienteController::class, 'pdfVencidos']);
 

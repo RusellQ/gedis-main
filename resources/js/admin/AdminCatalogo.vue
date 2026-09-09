@@ -134,31 +134,40 @@
             description="Defina vigencias, plazos de conservación y técnicas de selección para la serie."
           />
 
-          <div class="checks">
-            <label class="check">
-              <input id="vigencia_ad" v-model="form.vigencia_ad" type="checkbox">
-              Vigencia administrativo
-            </label>
-            <label class="check">
-              <input id="vigencia_le" v-model="form.vigencia_le" type="checkbox">
-              Legal
-            </label>
-            <label class="check">
-              <input id="vigencia_confi" v-model="form.vigencia_confi" type="checkbox">
-              Confidencial / contable
-            </label>
-            <label class="check">
-              <input id="tec_elim" v-model="form.tecnica_eliminacion" type="checkbox">
-              Eliminación
-            </label>
-            <label class="check">
-              <input id="tec_cons" v-model="form.tecnica_conservacion" type="checkbox">
-              Conservación
-            </label>
-            <label class="check">
-              <input id="tec_muest" v-model="form.tecnica_muestreo" type="checkbox">
-              Muestreo
-            </label>
+          <div class="check-group">
+            <p class="check-group-title">Vigencia documental</p>
+            <div class="checks">
+              <label class="check">
+                <input id="vigencia_ad" v-model="form.vigencia_ad" type="checkbox">
+                Administrativo
+              </label>
+              <label class="check">
+                <input id="vigencia_le" v-model="form.vigencia_le" type="checkbox">
+                Legal
+              </label>
+              <label class="check">
+                <input id="vigencia_confi" v-model="form.vigencia_confi" type="checkbox">
+                Confidencial / contable
+              </label>
+            </div>
+          </div>
+
+          <div class="check-group">
+            <p class="check-group-title">Valor documental</p>
+            <div class="checks">
+              <label class="check">
+                <input id="tec_elim" v-model="form.tecnica_eliminacion" type="checkbox">
+                Eliminación
+              </label>
+              <label class="check">
+                <input id="tec_cons" v-model="form.tecnica_conservacion" type="checkbox">
+                Conservación
+              </label>
+              <label class="check">
+                <input id="tec_muest" v-model="form.tecnica_muestreo" type="checkbox">
+                Muestreo
+              </label>
+            </div>
           </div>
 
           <div class="field-grid mt-3">
@@ -174,14 +183,22 @@
               <label>Total años</label>
               <input v-model.number="form.plazo_ta" type="number" min="0" class="control">
             </div>
-            <div class="field">
-              <label>Clasificación reservada</label>
-              <input v-model="form.clasificacion_r" type="text" class="control">
+          </div>
+
+          <div class="check-group">
+            <div class="checks checks-2">
+              <label class="check">
+                <input id="clasif_r" v-model="form.clasificacion_r" type="checkbox">
+                Clasificación de la información reservada
+              </label>
+              <label class="check">
+                <input id="clasif_c" v-model="form.clasificacion_c" type="checkbox">
+                Clasificación confidencial
+              </label>
             </div>
-            <div class="field">
-              <label>Clasificación confidencial</label>
-              <input v-model="form.clasificacion_c" type="text" class="control">
-            </div>
+          </div>
+
+          <div class="field-grid mt-3">
             <div class="field field-span">
               <label>Observaciones</label>
               <textarea v-model="form.observaciones" class="control" rows="2"></textarea>
@@ -266,8 +283,8 @@ const emptySerieExtra = () => ({
   tecnica_eliminacion: false,
   tecnica_conservacion: false,
   tecnica_muestreo: false,
-  clasificacion_r: '',
-  clasificacion_c: '',
+  clasificacion_r: false,
+  clasificacion_c: false,
   observaciones: '',
 })
 
@@ -516,8 +533,8 @@ export default {
           tecnica_eliminacion: !!item.tecnica_eliminacion,
           tecnica_conservacion: !!item.tecnica_conservacion,
           tecnica_muestreo: !!item.tecnica_muestreo,
-          clasificacion_r: item.clasificacion_r || '',
-          clasificacion_c: item.clasificacion_c || '',
+          clasificacion_r: !!item.clasificacion_r,
+          clasificacion_c: !!item.clasificacion_c,
           observaciones: item.observaciones || '',
         })
       }
@@ -638,8 +655,8 @@ export default {
         tecnica_eliminacion: !!this.form.tecnica_eliminacion,
         tecnica_conservacion: !!this.form.tecnica_conservacion,
         tecnica_muestreo: !!this.form.tecnica_muestreo,
-        clasificacion_r: this.form.clasificacion_r,
-        clasificacion_c: this.form.clasificacion_c,
+        clasificacion_r: !!this.form.clasificacion_r,
+        clasificacion_c: !!this.form.clasificacion_c,
         observaciones: this.form.observaciones,
       }
     },
@@ -853,12 +870,22 @@ export default {
   margin-bottom: 1rem;
 }
 
+.check-group { margin-top: .85rem; }
+.check-group-title {
+  display: block;
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  margin: 0 0 .35rem;
+}
 .checks {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: .55rem .75rem;
-  margin-top: .35rem;
 }
+.checks-2 { grid-template-columns: 1fr 1fr; }
 .check {
   display: flex;
   align-items: center;
