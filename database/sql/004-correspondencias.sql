@@ -7,13 +7,21 @@
 --
 -- REQUISITO: Base de datos `gda` existe con tablas de expedientes, usuarios, etc.
 --
+-- TIPOS DE FK (deben coincidir EXACTAMENTE con el esquema GEDIS):
+--   expedientes.id              → int            (signed)
+--   users.id                    → int unsigned
+--   unidades_documentales.id    → int            (signed)
+--
 -- USO:
 --   mysql -u USUARIO -p gda < database/sql/004-correspondencias.sql
 --
+-- Si una ejecución anterior dejó tablas a medias, bórralas antes:
+--   DROP TABLE IF EXISTS correspondencia_auditorias, correspondencia_anexos,
+--                         correspondencia_firmas, correspondencias;
 -- =============================================================================
 
 /*!40101 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
 /*!40101 SET NAMES utf8mb4 */;
 
 USE `gda`;
@@ -25,10 +33,10 @@ USE `gda`;
 -- Cada correspondencia puede tener múltiples firmas en el histórico.
 
 CREATE TABLE IF NOT EXISTS `correspondencias` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `id_expediente` bigint unsigned NOT NULL,
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `id_expediente` int NOT NULL COMMENT 'FK → expedientes.id (int signed)',
   `numero_consecutivo` int DEFAULT 1 COMMENT 'Número de orden dentro del expediente',
-  `id_usuario_autor` bigint unsigned NOT NULL,
+  `id_usuario_autor` int unsigned NOT NULL COMMENT 'FK → users.id (int unsigned)',
   `remitente` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Quién envía el documento',
   `destinatario` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Quién recibe el documento',
   `asunto` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Asunto del documento',
@@ -51,12 +59,12 @@ CREATE TABLE IF NOT EXISTS `correspondencias` (
 -- Tabla de firmas electrónicas SAT
 -- =============================================================================
 -- Almacena el histórico de intentos de firma para cada correspondencia.
--- La firma más reciente con estado 'exitosa' es la válida.
+-- La firma más reciente con estado 'exitosa' es la vigente.
 
 CREATE TABLE IF NOT EXISTS `correspondencia_firmas` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `id_correspondencia` bigint unsigned NOT NULL,
-  `id_usuario_firmante` bigint unsigned NOT NULL,
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `id_correspondencia` int unsigned NOT NULL,
+  `id_usuario_firmante` int unsigned NOT NULL COMMENT 'FK → users.id (int unsigned)',
   `certificado_sat` text COLLATE utf8mb4_unicode_ci COMMENT 'Certificado digital SAT (Base64 o referencia)',
   `timestamp_firma` timestamp NULL DEFAULT NULL COMMENT 'Timestamp de firma según SAT',
   `estado_firma` enum('pendiente','exitosa','rechazada') COLLATE utf8mb4_unicode_ci DEFAULT 'pendiente' COMMENT 'Estado del intento de firma',
@@ -77,9 +85,9 @@ CREATE TABLE IF NOT EXISTS `correspondencia_firmas` (
 -- Por defecto, los PDFs están asociados al expediente; esto permite detallar qué PDF va con qué documento.
 
 CREATE TABLE IF NOT EXISTS `correspondencia_anexos` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `id_correspondencia` bigint unsigned NOT NULL,
-  `id_unidad_documental` bigint unsigned NOT NULL,
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `id_correspondencia` int unsigned NOT NULL,
+  `id_unidad_documental` int NOT NULL COMMENT 'FK → unidades_documentales.id (int signed)',
   `orden` int DEFAULT 0 COMMENT 'Orden de visualización',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -95,9 +103,9 @@ CREATE TABLE IF NOT EXISTS `correspondencia_anexos` (
 -- Registra accesos, descargas y cambios de estado para seguridad.
 
 CREATE TABLE IF NOT EXISTS `correspondencia_auditorias` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `id_correspondencia` bigint unsigned NOT NULL,
-  `id_usuario` bigint unsigned NOT NULL,
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `id_correspondencia` int unsigned NOT NULL,
+  `id_usuario` int unsigned NOT NULL COMMENT 'FK → users.id (int unsigned)',
   `accion` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Ej: crear, editar, firmar, descargar, eliminar',
   `detalles` text COLLATE utf8mb4_unicode_ci COMMENT 'Información adicional de la acción',
   `ip_address` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,

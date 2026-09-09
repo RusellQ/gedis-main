@@ -38,10 +38,12 @@ class FixCorrespondenciaSchema extends Command
 
     private function fixCorrespondencias(): void
     {
+        // Tipos alineados al esquema GEDIS:
+        //   expedientes.id → int (signed) · users.id → int unsigned
         Schema::table('correspondencias', function (Blueprint $table) {
-            $this->addColumnIfMissing('correspondencias', 'id_expediente', fn () => $table->unsignedBigInteger('id_expediente')->after('id'));
+            $this->addColumnIfMissing('correspondencias', 'id_expediente', fn () => $table->integer('id_expediente')->after('id'));
             $this->addColumnIfMissing('correspondencias', 'numero_consecutivo', fn () => $table->integer('numero_consecutivo')->default(1));
-            $this->addColumnIfMissing('correspondencias', 'id_usuario_autor', fn () => $table->unsignedBigInteger('id_usuario_autor'));
+            $this->addColumnIfMissing('correspondencias', 'id_usuario_autor', fn () => $table->unsignedInteger('id_usuario_autor'));
             $this->addColumnIfMissing('correspondencias', 'remitente', fn () => $table->string('remitente')->nullable());
             $this->addColumnIfMissing('correspondencias', 'destinatario', fn () => $table->string('destinatario')->nullable());
             $this->addColumnIfMissing('correspondencias', 'asunto', fn () => $table->text('asunto'));
@@ -64,9 +66,9 @@ class FixCorrespondenciaSchema extends Command
     {
         if (!Schema::hasTable('correspondencia_firmas')) {
             Schema::create('correspondencia_firmas', function (Blueprint $table) {
-                $table->id();
-                $table->unsignedBigInteger('id_correspondencia');
-                $table->unsignedBigInteger('id_usuario_firmante');
+                $table->increments('id');
+                $table->unsignedInteger('id_correspondencia');
+                $table->unsignedInteger('id_usuario_firmante');
                 $table->text('certificado_sat')->nullable();
                 $table->timestamp('timestamp_firma')->nullable();
                 $table->enum('estado_firma', ['pendiente', 'exitosa', 'rechazada'])->default('pendiente');
@@ -84,9 +86,9 @@ class FixCorrespondenciaSchema extends Command
     {
         if (!Schema::hasTable('correspondencia_anexos')) {
             Schema::create('correspondencia_anexos', function (Blueprint $table) {
-                $table->id();
-                $table->unsignedBigInteger('id_correspondencia');
-                $table->unsignedBigInteger('id_unidad_documental');
+                $table->increments('id');
+                $table->unsignedInteger('id_correspondencia');
+                $table->integer('id_unidad_documental'); // unidades_documentales.id es int signed
                 $table->integer('orden')->default(0);
                 $table->timestamp('created_at')->nullable()->useCurrent();
                 $table->unique(['id_correspondencia', 'id_unidad_documental'], 'uk_correspondencia_anexo');
@@ -101,9 +103,9 @@ class FixCorrespondenciaSchema extends Command
     {
         if (!Schema::hasTable('correspondencia_auditorias')) {
             Schema::create('correspondencia_auditorias', function (Blueprint $table) {
-                $table->id();
-                $table->unsignedBigInteger('id_correspondencia');
-                $table->unsignedBigInteger('id_usuario');
+                $table->increments('id');
+                $table->unsignedInteger('id_correspondencia');
+                $table->unsignedInteger('id_usuario');
                 $table->string('accion', 50);
                 $table->text('detalles')->nullable();
                 $table->string('ip_address', 45)->nullable();
