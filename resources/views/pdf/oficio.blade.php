@@ -19,11 +19,11 @@
             position: fixed;
             left: -48px;
             bottom: -58px;
-            width: 708px; /* letter 612 + márgenes 48*2 */
+            width: 795px; /* un poco más ancho para cubrir bordes */
             z-index: -1000;
         }
         .page-footer img {
-            width: 708px;
+            width: 795px;
             height: auto;
             display: block;
         }
@@ -43,7 +43,7 @@
             text-align: left;
         }
         .header-left img {
-            width: 92px;
+            width: 158px;
             height: auto;
         }
         .header-right {
