@@ -12,18 +12,19 @@
               <div class="spinner-border text-primary"></div>
             </div>
             <div v-else class="oficio-plantilla">
-              <div class="oficio-header text-center mb-3">
-                <div class="small text-uppercase fw-bold">Archivo General del Estado de Quintana Roo</div>
-                <div class="text-muted small">Plantilla oficial — zonas fijas no editables</div>
+              <div class="oficio-header-logos d-flex justify-content-between align-items-start mb-2">
+                <img src="/assets/images/escudo.png" alt="Escudo" class="logo-escudo">
+                <img src="/assets/images/oficio/header-qroo.png" alt="Quintana Roo" class="logo-qroo">
               </div>
 
               <div class="row mb-2">
-                <div class="col-md-6 offset-md-6">
-                  <div class="campo-auto small mb-1">
+                <div class="col-md-7 offset-md-5 text-end">
+                  <div class="small text-uppercase fw-bold mb-1">Archivo General del Estado de Quintana Roo.</div>
+                  <div class="campo-auto small mb-1 text-start">
                     <strong>Oficio No.</strong>
                     <span class="ms-1">{{ formulario.numero_oficio || '(se asigna al emitir)' }}</span>
                   </div>
-                  <div class="mb-2">
+                  <div class="mb-2 text-start">
                     <label class="form-label small fw-semibold campo-editable-label">ASUNTO</label>
                     <input
                       v-model="formulario.asunto"
@@ -33,10 +34,10 @@
                       required
                     />
                   </div>
-                  <div class="campo-auto small mb-2">
+                  <div class="campo-auto small mb-2 text-start">
                     {{ lugar }} a {{ fechaLegible }}.
                   </div>
-                  <div class="mb-2">
+                  <div class="mb-2 text-start">
                     <label class="form-label small fw-semibold campo-editable-label">Leyenda del año</label>
                     <input
                       v-model="formulario.leyenda_anio"
@@ -73,6 +74,9 @@
 
               <div class="text-muted small border-top pt-2">
                 Cierre fijo · ATENTAMENTE · {{ firmaNombre }} — {{ firmaCargo }}
+              </div>
+              <div class="oficio-pie-preview mt-3">
+                <img src="/assets/images/oficio/pie-agqroo.png" alt="Pie AGQROO">
               </div>
             </div>
           </div>
@@ -309,7 +313,25 @@ export default {
   background: #fff;
   border: 1px solid #e4e0d8;
   border-radius: 8px;
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.25rem 0;
+  overflow: hidden;
+}
+.logo-escudo {
+  width: 72px;
+  height: auto;
+}
+.logo-qroo {
+  width: 180px;
+  height: auto;
+}
+.oficio-pie-preview {
+  margin: 1rem -1.25rem 0;
+  line-height: 0;
+}
+.oficio-pie-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 .campo-auto {
   background: #e8f1fb;
