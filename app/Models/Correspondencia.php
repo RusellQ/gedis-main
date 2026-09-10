@@ -11,27 +11,41 @@ class Correspondencia extends Model
 
     protected $table = 'correspondencias';
 
+    const CREATED_AT = 'fecha_creacion';
+    const UPDATED_AT = 'fecha_modificacion';
+
     protected $fillable = [
         'id_expediente',
+        'id_unidad_documental',
         'numero_consecutivo',
+        'numero_oficio',
         'id_usuario_autor',
+        'id_usuario_destinatario',
         'remitente',
         'destinatario',
         'asunto',
+        'leyenda_anio',
+        'fecha_oficio',
         'contenido',
         'clasificacion',
         'estado',
-        'fecha_creacion',
-        'fecha_modificacion',
+        'remitido_at',
+        'archivado_at',
     ];
 
     protected $casts = [
         'fecha_creacion' => 'datetime',
         'fecha_modificacion' => 'datetime',
+        'fecha_oficio' => 'date',
+        'remitido_at' => 'datetime',
+        'archivado_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
 
     const ESTADO_BORRADOR = 'borrador';
+    const ESTADO_EMITIDO = 'emitido';
+    const ESTADO_REMITIDO = 'remitido';
+    const ESTADO_ARCHIVADO = 'archivado';
     const ESTADO_FIRMADO = 'firmado';
     const ESTADO_CANCELADO = 'cancelado';
 
@@ -39,112 +53,103 @@ class Correspondencia extends Model
     const CLASIFICACION_RESERVADA = 'reservada';
     const CLASIFICACION_CONFIDENCIAL = 'confidencial';
 
-    // =========================================================================
-    // Relaciones
-    // =========================================================================
-
-    /**
-     * Expediente al que pertenece esta correspondencia
-     */
     public function expediente()
     {
         return $this->belongsTo(Expediente::class, 'id_expediente');
     }
 
-    /**
-     * Usuario que creó/redactó el documento
-     */
+    public function unidadDocumental()
+    {
+        return $this->belongsTo(UnidadDocumental::class, 'id_unidad_documental');
+    }
+
     public function usuarioAutor()
     {
         return $this->belongsTo(User::class, 'id_usuario_autor');
     }
 
-    /**
-     * Firma electrónica SAT asociada
-     */
+    public function usuarioDestinatario()
+    {
+        return $this->belongsTo(User::class, 'id_usuario_destinatario');
+    }
+
     public function firma()
     {
         return $this->hasOne(CorrespondenciaFirma::class, 'id_correspondencia');
     }
 
-    /**
-     * Todas las firmas (histórico de intentos)
-     */
     public function firmas()
     {
         return $this->hasMany(CorrespondenciaFirma::class, 'id_correspondencia');
     }
 
-    /**
-     * Anexos PDF (unidades documentales)
-     */
     public function anexos()
     {
         return $this->hasMany(CorrespondenciaAnexo::class, 'id_correspondencia');
     }
 
-    /**
-     * Auditoría de acciones
-     */
     public function auditorias()
     {
         return $this->hasMany(CorrespondenciaAuditoria::class, 'id_correspondencia');
     }
 
-    // =========================================================================
-    // Métodos de negocio
-    // =========================================================================
-
-    /**
-     * Verificar si el documento está en estado borrador (editable)
-     */
     public function esEditable(): bool
     {
         return $this->estado === self::ESTADO_BORRADOR;
     }
 
-    /**
-     * Verificar si el documento está firmado
-     */
-    public function estaFirmado(): bool
+    public function puedeRemitirse(): bool
     {
-        return $this->estado === self::ESTADO_FIRMADO;
+        return in_array($this->estado, [self::ESTADO_EMITIDO, self::ESTADO_FIRMADO], true)
+            && !$this->id_usuario_destinatario;
     }
 
-    /**
-     * Verificar si tiene firma válida
-     */
+    public function puedeArchivarse(): bool
+    {
+        return $this->estado === self::ESTADO_REMITIDO && !$this->id_unidad_documental;
+    }
+
+    public function estaFirmado(): bool
+    {
+        return $this->estado === self::ESTADO_FIRMADO || $this->tieneFirmaValida();
+    }
+
     public function tieneFirmaValida(): bool
     {
         $firma = $this->firma;
         return $firma && $firma->estado_firma === CorrespondenciaFirma::ESTADO_EXITOSA;
     }
 
-    /**
-     * Cambiar estado a firmado
-     */
     public function marcarComoFirmado(): bool
     {
         $this->estado = self::ESTADO_FIRMADO;
         return $this->save();
     }
 
-    /**
-     * Cambiar estado a cancelado
-     */
     public function cancelar(): bool
     {
         $this->estado = self::ESTADO_CANCELADO;
         return $this->save();
     }
 
-    /**
-     * Obtener siguiente número consecutivo para el expediente
-     */
-    public static function obtenerProximoConsecutivo(int $idExpediente): int
+    public static function obtenerProximoConsecutivo(?int $idExpediente): int
     {
-        $ultimoConsecutivo = self::where('id_expediente', $idExpediente)
-            ->max('numero_consecutivo');
-        return ($ultimoConsecutivo ?? 0) + 1;
+        $query = self::query();
+        if ($idExpediente) {
+            $query->where('id_expediente', $idExpediente);
+        } else {
+            $query->whereNull('id_expediente');
+        }
+        $ultimo = $query->max('numero_consecutivo');
+        return ((int) $ultimo) + 1;
+    }
+
+    public function nombreAutorCompleto(): string
+    {
+        $u = $this->usuarioAutor;
+        if (!$u) {
+            return 'Desconocido';
+        }
+        return trim($u->nombre . ' ' . $u->apellido_paterno . ' ' . ($u->apellido_materno ?? ''));
     }
 }

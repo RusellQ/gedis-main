@@ -276,23 +276,27 @@ Route::post('/documentos/update/{documentId}', [DocumentoController::class, 'upd
 Route::get('/ultimos-documentos', [DocumentoController::class, 'obtenerUltimosDocumentos']);
 
 // =============================================================================
-// RUTAS PARA MÓDULO DE CORRESPONDENCIA
+// RUTAS PARA MÓDULO DE CORRESPONDENCIA (005 · oficios / remisión / archivo)
 // =============================================================================
-Route::get('/correspondencia', function () {
-    return view('administrativas.correspondencia');
-})->middleware('auth');
-
-Route::get('/correspondencia/crear', function () {
-    return view('administrativas.correspondencia-editor');
-})->middleware('auth');
-
-// API REST para Correspondencia
 Route::middleware('auth')->group(function () {
-    Route::get('/api/correspondencia', [CorrespondenciaController::class, 'index']);
+    Route::get('/correspondencia', fn () => redirect('/correspondencia/bandeja'));
+    Route::get('/correspondencia/bandeja', function () {
+        return view('administrativas.correspondencia-bandeja');
+    });
+    Route::get('/correspondencia/recepcion', function () {
+        return view('administrativas.correspondencia-recepcion');
+    });
+
+    Route::get('/api/correspondencia/bandeja', [CorrespondenciaController::class, 'bandeja']);
+    Route::get('/api/correspondencia/recepcion', [CorrespondenciaController::class, 'recepcion']);
+    Route::get('/api/correspondencia/usuarios-remision', [CorrespondenciaController::class, 'usuariosRemision']);
     Route::post('/api/correspondencia', [CorrespondenciaController::class, 'store']);
     Route::get('/api/correspondencia/{id}', [CorrespondenciaController::class, 'show']);
     Route::put('/api/correspondencia/{id}', [CorrespondenciaController::class, 'update']);
     Route::delete('/api/correspondencia/{id}', [CorrespondenciaController::class, 'destroy']);
+    Route::post('/api/correspondencia/{id}/emitir', [CorrespondenciaController::class, 'emitir']);
+    Route::post('/api/correspondencia/{id}/remitir', [CorrespondenciaController::class, 'remitir']);
+    Route::post('/api/correspondencia/{id}/archivar', [CorrespondenciaController::class, 'archivar']);
     Route::post('/api/correspondencia/{id}/firmar', [CorrespondenciaController::class, 'firmar']);
     Route::get('/api/correspondencia/{id}/pdf', [CorrespondenciaController::class, 'descargarPDF']);
 });

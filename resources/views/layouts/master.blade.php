@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="">
     <meta name="author" content="">
-    <link rel="icon" href="assets/qr.png" type="image/x-icon">
+    <link rel="icon" href="{{ asset('assets/qr.png') }}" type="image/x-icon">
 
     <title>@yield('title')</title> <!-- Si no se define un título específico en la vista, se usará "AGQROO" por defecto -->
 
@@ -18,7 +18,7 @@
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
 
     <!-- Custom styles for this template-->
-    <link href="assets/css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="{{ asset('assets/css/sb-admin-2.min.css') }}" rel="stylesheet">
 
     <style>
         /* ============================================================
@@ -158,6 +158,18 @@
             #accordionSidebar:not(.toggled) .nav-item .collapse,
             #accordionSidebar:not(.toggled) .nav-item .collapsing {
                 margin: 0 !important;
+                position: relative !important;
+                left: 0 !important;
+                z-index: 1;
+            }
+
+            #accordionSidebar:not(.toggled) .nav-item .collapse .collapse-inner,
+            #accordionSidebar:not(.toggled) .nav-item .collapsing .collapse-inner {
+                position: relative !important;
+                left: 0 !important;
+                top: 0 !important;
+                box-shadow: none !important;
+                transform: none !important;
             }
         }
 
@@ -429,13 +441,14 @@
             <!-- Sidebar - Brand -->
             <a class="sidebar-brand d-flex align-items-center justify-content-center">
                 <div class="sidebar-brand-logo">
-                    <img src="assets/gedis.png" alt="Sistema de gestión documental automatizado">
+                    <img src="{{ asset('assets/gedis.png') }}" alt="Sistema de gestión documental automatizado">
                 </div>
             </a>
 
             @php
                 $navIs = fn (...$patterns) => request()->is(...$patterns);
-                $navExpedientes = $navIs('cargarexpedientes', 'expedientes', 'capturar', 'caratula-v2', 'consultar', 'buscar', 'expedienteindividual', 'correspondencia', 'correspondencia/*');
+                $navExpedientes = $navIs('cargarexpedientes', 'expedientes', 'capturar', 'caratula-v2', 'consultar', 'buscar', 'expedienteindividual');
+                $navCorrespondencia = $navIs('correspondencia', 'correspondencia/*');
                 $navArchivo = $navIs('tramite', 'concentracion', 'historico', 'vencidos', 'expedientes/vencidos*', 'bajas', 'indexbaja');
                 $navCatalogo = $navIs('fondos', 'indexfondos', 'series', 'cuadro', 'cuadrogeneral*', 'catalogodisposicion*', 'catalogosecciones*');
                 $navReportes = $navIs('reportes', 'reportes/*');
@@ -468,7 +481,20 @@
                         <a class="collapse-item {{ $navIs('caratula-v2') ? 'active' : '' }}" href="/caratula-v2">Carátula de expediente</a>
                         @endif
                         <a class="collapse-item {{ $navIs('consultar', 'buscar', 'expedienteindividual') ? 'active' : '' }}" href="/consultar">Consultar caratulas</a>
-                        <a class="collapse-item {{ $navIs('correspondencia', 'correspondencia/*') ? 'active' : '' }}" href="/correspondencia">Correspondencia</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Sección: Correspondencia -->
+            <li class="nav-item {{ $navCorrespondencia ? 'active' : '' }}">
+                <a class="nav-link {{ $navCorrespondencia ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapseCorrespondencia" aria-expanded="{{ $navCorrespondencia ? 'true' : 'false' }}" aria-controls="collapseCorrespondencia" title="Correspondencia">
+                    <i class="fas fa-envelope"></i>
+                    <span>Correspondencia</span>
+                </a>
+                <div id="collapseCorrespondencia" class="collapse {{ $navCorrespondencia ? 'show' : '' }}" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <a class="collapse-item {{ request()->is('correspondencia/bandeja') || request()->is('correspondencia') ? 'active' : '' }}" href="/correspondencia/bandeja">Bandeja / Remisión</a>
+                        <a class="collapse-item {{ request()->is('correspondencia/recepcion') ? 'active' : '' }}" href="/correspondencia/recepcion">Recepción / Archivo</a>
                     </div>
                 </div>
             </li>
@@ -830,17 +856,17 @@
     </div>
 
     <!-- Bootstrap core JavaScript-->
-    <script src="assets/vendor/jquery/jquery.min.js"></script>
-    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('assets/vendor/jquery/jquery.min.js') }}"></script>
+    <script src="{{ asset('assets/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 
     <!-- Core plugin JavaScript-->
-    <script src="assets/vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="{{ asset('assets/vendor/jquery-easing/jquery.easing.min.js') }}"></script>
 
     <!-- Custom scripts for all pages-->
-    <script src="assets/js/sb-admin-2.min.js"></script>
+    <script src="{{ asset('assets/js/sb-admin-2.min.js') }}"></script>
 
     <!-- Page level plugins -->
-    <script src="assets/vendor/chart.js/Chart.min.js"></script>
+    <script src="{{ asset('assets/vendor/chart.js/Chart.min.js') }}"></script>
 
 </body>
 

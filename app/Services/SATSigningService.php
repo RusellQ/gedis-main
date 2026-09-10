@@ -40,8 +40,19 @@ class SATSigningService
     public function firmar(Correspondencia $correspondencia): array
     {
         try {
-            // Validar que el documento está en estado borrador
-            if (!$correspondencia->esEditable()) {
+            // Validar que el documento puede firmarse (sandbox)
+            if (in_array($correspondencia->estado, [
+                \App\Models\Correspondencia::ESTADO_ARCHIVADO,
+                \App\Models\Correspondencia::ESTADO_CANCELADO,
+            ], true)) {
+                return [
+                    'exito' => false,
+                    'mensaje' => 'El documento no puede firmarse en su estado actual.',
+                    'estado' => 'rechazada',
+                ];
+            }
+
+            if ($correspondencia->tieneFirmaValida()) {
                 return [
                     'exito' => false,
                     'mensaje' => 'El documento ya está firmado. No se puede firmar nuevamente.',
@@ -112,7 +123,7 @@ class SATSigningService
         $metadatos->addChild('remitente', htmlspecialchars($correspondencia->remitente ?? ''));
         $metadatos->addChild('destinatario', htmlspecialchars($correspondencia->destinatario ?? ''));
         $metadatos->addChild('clasificacion', $correspondencia->clasificacion);
-        $metadatos->addChild('fecha_creacion', $correspondencia->fecha_creacion->toIso8601String());
+        $metadatos->addChild('fecha_creacion', optional($correspondencia->fecha_creacion)->toIso8601String() ?: now()->toIso8601String());
         $metadatos->addChild('id_usuario_autor', $correspondencia->id_usuario_autor);
 
         // Contenido del documento

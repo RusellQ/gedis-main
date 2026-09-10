@@ -33,16 +33,18 @@
 
 > Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez.
 
-- **Pruebas automatizadas y depuración** — cobertura de tests de integración para módulos recientes.
+- **[005 · Correspondencia: oficios, remisión y archivo](../features/005-correspondencia-oficios-remision/)** — Menú en dos vistas (bandeja/remisión y recepción/archivo); oficio con plantilla oficial (fijo / automático / editable); archivar como unidad documental reutilizando jerarquía existente. *(En curso — reemplaza el enfoque monolítico del 004.)*
 
 ## Backlog / ideas 💡
 
 > Sin comprometer ni ordenar del todo. Ideas que respetan la constitución.
 
+- **Pruebas automatizadas y depuración** — cobertura de tests de integración para módulos recientes.
 - **Documentar entorno** — crear/mantener `.env.example` alineado a MySQL + Mongo opcional (stats).
 - **Depurar pantallas legacy fuera del menú activo** — `/buscar`, `/capturar` (legado), `/inventario`, `/estadisticas`, `/series`, `/indexfondos`: consolidar, archivar o reintegrar con criterio de producto.
 - **Pruebas automatizadas de dominio** — Feature/Unit tests para reglas documentales, cambio de estado de expediente y permisos por rol/dependencia.
 - **Endurecer carátula v2** — casos borde de catálogo incompleto, permisos y consistencia PDF ↔ datos guardados.
 - **Trazabilidad de bajas y cambios de estado** — auditoría explícita de quién/cuándo movió un expediente en el ciclo vital.
+- **Firma electrónica real (SAT/FIEL) para oficios** — el 005 conserva solo sandbox de prueba; credenciales reales solo si negocio lo exige.
 
 > Cada feature nueva se crea como `features/NNN-nombre-feature/` con `spec.md`, `plan.md` y `tasks.md` antes de tocar código.

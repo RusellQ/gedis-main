@@ -4,251 +4,407 @@ namespace App\Http\Controllers;
 
 use App\Models\Correspondencia;
 use App\Models\Expediente;
+use App\Models\UnidadDocumental;
+use App\Models\User;
+use App\Services\OficioNumeroService;
 use App\Services\SATSigningService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class CorrespondenciaController extends Controller
 {
-    protected SATSigningService $satService;
-
-    public function __construct(SATSigningService $satService)
-    {
-        $this->satService = $satService;
+    public function __construct(
+        protected SATSigningService $satService,
+        protected OficioNumeroService $oficioNumeroService
+    ) {
         $this->middleware('auth');
     }
 
     /**
-     * Listar correspondencias de un expediente
-     * GET /correspondencia?id_expediente=X
+     * Bandeja del emisor (oficios creados en su dependencia).
+     * GET /api/correspondencia/bandeja
      */
-    public function index(Request $request)
+    public function bandeja(Request $request)
     {
-        $idExpediente = $request->query('id_expediente');
-
-        if (!$idExpediente) {
-            return response()->json(['error' => 'id_expediente requerido'], 400);
+        $usuario = Auth::user();
+        if (!$usuario->hasRole(['root', 'administrador', 'editor', 'lector'])) {
+            return response()->json(['error' => 'No tiene permisos'], 403);
         }
 
-        try {
-            $expediente = Expediente::findOrFail($idExpediente);
+        $query = Correspondencia::query()
+            ->with(['usuarioAutor', 'usuarioDestinatario', 'firma'])
+            ->orderByDesc('fecha_creacion');
 
-            // Validar permisos: usuario debe tener acceso a este expediente
-            $this->verificarAccesoExpediente($expediente);
-
-            $correspondencias = Correspondencia::where('id_expediente', $idExpediente)
-                ->whereNull('deleted_at')
-                ->with(['usuarioAutor', 'firma'])
-                ->orderBy('fecha_creacion', 'desc')
-                ->get()
-                ->map(function ($corr) {
-                    return [
-                        'id' => $corr->id,
-                        'numero_consecutivo' => $corr->numero_consecutivo,
-                        'asunto' => $corr->asunto,
-                        'remitente' => $corr->remitente,
-                        'destinatario' => $corr->destinatario,
-                        'clasificacion' => $corr->clasificacion,
-                        'estado' => $corr->estado,
-                        'usuario_autor' => $corr->usuarioAutor ? trim($corr->usuarioAutor->nombre . ' ' . $corr->usuarioAutor->apellido_paterno) : 'Desconocido',
-                        'fecha_creacion' => $corr->fecha_creacion?->format('Y-m-d H:i:s'),
-                        'fecha_firma' => $corr->firma?->timestamp_firma?->format('Y-m-d H:i:s'),
-                        'tiene_firma_valida' => $corr->tieneFirmaValida(),
-                    ];
-                });
-
-            return response()->json($correspondencias);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(['error' => 'El expediente no existe.'], 404);
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
-            return response()->json(['error' => $e->getMessage() ?: 'No tiene acceso a este expediente.'], $e->getStatusCode());
-        } catch (\Throwable $e) {
-            \Log::error('Error al listar correspondencias: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json(['error' => 'Error al cargar correspondencias.'], 500);
+        if (!$usuario->hasRole('root')) {
+            $autorIds = User::where('id_dependencia', $usuario->id_dependencia)->pluck('id');
+            $query->whereIn('id_usuario_autor', $autorIds);
         }
+
+        return response()->json($query->get()->map(fn ($c) => $this->mapListado($c)));
     }
 
     /**
-     * Obtener detalle de una correspondencia
-     * GET /correspondencia/{id}
+     * Oficios remitidos al usuario autenticado.
+     * GET /api/correspondencia/recepcion
      */
+    public function recepcion()
+    {
+        $usuario = Auth::user();
+
+        $items = Correspondencia::query()
+            ->with(['usuarioAutor', 'firma', 'expediente'])
+            ->where('id_usuario_destinatario', $usuario->id)
+            ->whereIn('estado', [
+                Correspondencia::ESTADO_REMITIDO,
+                Correspondencia::ESTADO_ARCHIVADO,
+                Correspondencia::ESTADO_FIRMADO,
+            ])
+            ->orderByDesc('remitido_at')
+            ->get()
+            ->map(fn ($c) => $this->mapListado($c));
+
+        return response()->json($items);
+    }
+
+    /**
+     * Usuarios de la misma dependencia para remisión.
+     * GET /api/correspondencia/usuarios-remision
+     */
+    public function usuariosRemision()
+    {
+        $usuario = Auth::user();
+        $query = User::query()->orderBy('nombre');
+
+        if (!$usuario->hasRole('root')) {
+            $query->where('id_dependencia', $usuario->id_dependencia);
+        }
+
+        $users = $query->get()->map(fn (User $u) => [
+            'id' => $u->id,
+            'nombre' => trim($u->nombre . ' ' . $u->apellido_paterno . ' ' . ($u->apellido_materno ?? '')),
+            'email' => $u->email,
+            'id_departamento' => $u->id_departamento,
+        ])->filter(fn ($u) => $u['id'] !== $usuario->id)->values();
+
+        return response()->json($users);
+    }
+
     public function show($id)
     {
-        $correspondencia = Correspondencia::with(['expediente', 'usuarioAutor', 'firma'])
-            ->findOrFail($id);
+        $correspondencia = Correspondencia::with([
+            'expediente',
+            'usuarioAutor',
+            'usuarioDestinatario',
+            'firma',
+        ])->findOrFail($id);
 
-        // Validar permisos
-        $this->verificarAccesoExpediente($correspondencia->expediente);
+        $this->verificarAccesoOficio($correspondencia);
+        $this->registrarAcceso($correspondencia, 'acceder');
 
-        // Registrar acceso (auditoría)
-        $this->registrarAcceso($correspondencia);
-
-        return response()->json([
-            'id' => $correspondencia->id,
-            'id_expediente' => $correspondencia->id_expediente,
-            'numero_consecutivo' => $correspondencia->numero_consecutivo,
-            'asunto' => $correspondencia->asunto,
-            'remitente' => $correspondencia->remitente,
-            'destinatario' => $correspondencia->destinatario,
-            'contenido' => $correspondencia->contenido,
-            'clasificacion' => $correspondencia->clasificacion,
-            'estado' => $correspondencia->estado,
-            'usuario_autor' => [
-                'id' => $correspondencia->usuarioAutor->id,
-                'nombre' => $correspondencia->usuarioAutor->nombre . ' ' . $correspondencia->usuarioAutor->apellido_paterno,
-            ],
-            'fecha_creacion' => $correspondencia->fecha_creacion->toIso8601String(),
-            'fecha_modificacion' => $correspondencia->fecha_modificacion->toIso8601String(),
-            'firma' => $correspondencia->firma ? [
-                'id' => $correspondencia->firma->id,
-                'id_usuario_firmante' => $correspondencia->firma->id_usuario_firmante,
-                'timestamp_firma' => $correspondencia->firma->timestamp_firma?->toIso8601String(),
-                'estado_firma' => $correspondencia->firma->estado_firma,
-            ] : null,
-        ]);
+        return response()->json($this->mapDetalle($correspondencia));
     }
 
     /**
-     * Crear nueva correspondencia
-     * POST /correspondencia
+     * Crear borrador de oficio (sin expediente).
      */
     public function store(Request $request)
     {
-        // Validar entrada
-        $validado = $request->validate([
-            'id_expediente' => 'required|exists:expedientes,id',
-            'remitente' => 'nullable|string|max:255',
-            'destinatario' => 'nullable|string|max:255',
-            'asunto' => 'required|string|min:5',
-            'contenido' => 'required|string',
-            'clasificacion' => 'required|in:publica,reservada,confidencial',
-        ]);
-
-        // Obtener expediente y validar permisos
-        $expediente = Expediente::findOrFail($validado['id_expediente']);
-        $this->verificarAccesoExpediente($expediente);
-
-        // Validar que usuario tiene permisos de creación
         if (!Auth::user()->hasRole(['root', 'administrador', 'editor'])) {
-            return response()->json(['error' => 'No tiene permisos para crear correspondencia'], 403);
+            return response()->json(['error' => 'No tiene permisos para crear oficios'], 403);
         }
 
-        try {
-            // Obtener próximo número consecutivo
-            $proximoConsecutivo = Correspondencia::obtenerProximoConsecutivo($expediente->id);
+        $validado = $request->validate([
+            'asunto' => 'required|string|min:5',
+            'contenido' => 'required|string',
+            'destinatario' => 'nullable|string|max:2000',
+            'remitente' => 'nullable|string|max:255',
+            'leyenda_anio' => 'nullable|string|max:500',
+            'clasificacion' => 'nullable|in:publica,reservada,confidencial',
+            'emitir' => 'nullable|boolean',
+        ]);
 
-            // Crear correspondencia
+        $usuario = Auth::user();
+        $remitente = $validado['remitente']
+            ?? trim($usuario->nombre . ' ' . $usuario->apellido_paterno);
+
+        try {
             $correspondencia = Correspondencia::create([
-                'id_expediente' => $expediente->id,
-                'numero_consecutivo' => $proximoConsecutivo,
-                'id_usuario_autor' => Auth::id(),
-                'remitente' => $validado['remitente'],
-                'destinatario' => $validado['destinatario'],
+                'id_expediente' => null,
+                'numero_consecutivo' => Correspondencia::obtenerProximoConsecutivo(null),
+                'id_usuario_autor' => $usuario->id,
+                'remitente' => $remitente,
+                'destinatario' => $validado['destinatario'] ?? null,
                 'asunto' => $validado['asunto'],
+                'leyenda_anio' => $validado['leyenda_anio']
+                    ?? config('services.oficio.leyenda_anio_default')
+                    ?: ('Año ' . now()->year),
+                'fecha_oficio' => now()->toDateString(),
                 'contenido' => $validado['contenido'],
-                'clasificacion' => $validado['clasificacion'],
+                'clasificacion' => $validado['clasificacion'] ?? Correspondencia::CLASIFICACION_PUBLICA,
                 'estado' => Correspondencia::ESTADO_BORRADOR,
             ]);
 
-            // Registrar auditoría
+            if (!empty($validado['emitir'])) {
+                $this->asignarNumeroYEmitir($correspondencia, $usuario);
+            }
+
             $this->registrarAcceso($correspondencia, 'crear');
 
             return response()->json([
                 'id' => $correspondencia->id,
-                'numero_consecutivo' => $correspondencia->numero_consecutivo,
                 'estado' => $correspondencia->estado,
-                'mensaje' => 'Correspondencia creada como borrador.',
+                'numero_oficio' => $correspondencia->numero_oficio,
+                'mensaje' => $correspondencia->estado === Correspondencia::ESTADO_EMITIDO
+                    ? 'Oficio emitido.'
+                    : 'Oficio guardado como borrador.',
             ], 201);
         } catch (\Throwable $e) {
-            \Log::error('Error al crear correspondencia: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json(['error' => 'Error al guardar el documento. Contacte al administrador.'], 500);
+            Log::error('Error al crear oficio: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'Error al guardar el oficio.'], 500);
         }
     }
 
-    /**
-     * Actualizar correspondencia (solo si está en borrador)
-     * PUT /correspondencia/{id}
-     */
     public function update(Request $request, $id)
     {
         $correspondencia = Correspondencia::findOrFail($id);
+        $this->verificarAccesoOficio($correspondencia);
 
-        // Validar permisos
-        $this->verificarAccesoExpediente($correspondencia->expediente);
-
-        // Validar que no está firmado
         if (!$correspondencia->esEditable()) {
-            return response()->json([
-                'error' => 'No se puede editar una correspondencia firmada.',
-            ], 422);
+            return response()->json(['error' => 'Solo se pueden editar oficios en borrador.'], 422);
         }
 
-        // Validar entrada
+        if (!Auth::user()->hasRole(['root', 'administrador', 'editor'])) {
+            return response()->json(['error' => 'No tiene permisos'], 403);
+        }
+
         $validado = $request->validate([
-            'remitente' => 'nullable|string|max:255',
-            'destinatario' => 'nullable|string|max:255',
             'asunto' => 'required|string|min:5',
             'contenido' => 'required|string',
-            'clasificacion' => 'required|in:publica,reservada,confidencial',
+            'destinatario' => 'nullable|string|max:2000',
+            'remitente' => 'nullable|string|max:255',
+            'leyenda_anio' => 'nullable|string|max:500',
+            'clasificacion' => 'nullable|in:publica,reservada,confidencial',
+            'emitir' => 'nullable|boolean',
         ]);
 
-        // Actualizar
-        $correspondencia->update($validado);
+        $correspondencia->update([
+            'asunto' => $validado['asunto'],
+            'contenido' => $validado['contenido'],
+            'destinatario' => $validado['destinatario'] ?? $correspondencia->destinatario,
+            'remitente' => $validado['remitente'] ?? $correspondencia->remitente,
+            'leyenda_anio' => $validado['leyenda_anio'] ?? $correspondencia->leyenda_anio,
+            'clasificacion' => $validado['clasificacion'] ?? $correspondencia->clasificacion,
+        ]);
 
-        // Registrar auditoría
-        $this->registrarAcceso($correspondencia, 'editar', 'Documento modificado');
+        if (!empty($validado['emitir'])) {
+            $this->asignarNumeroYEmitir($correspondencia, Auth::user());
+        }
+
+        $this->registrarAcceso($correspondencia, 'editar', 'Oficio modificado');
 
         return response()->json([
             'id' => $correspondencia->id,
-            'mensaje' => 'Correspondencia actualizada.',
+            'estado' => $correspondencia->estado,
+            'numero_oficio' => $correspondencia->numero_oficio,
+            'mensaje' => 'Oficio actualizado.',
         ]);
     }
 
     /**
-     * Eliminar correspondencia (soft delete, solo en borrador)
-     * DELETE /correspondencia/{id}
+     * Emitir: asigna número de oficio y pasa a emitido.
+     * POST /api/correspondencia/{id}/emitir
      */
-    public function destroy($id)
+    public function emitir($id)
     {
         $correspondencia = Correspondencia::findOrFail($id);
+        $this->verificarAccesoOficio($correspondencia);
 
-        // Validar permisos
-        $this->verificarAccesoExpediente($correspondencia->expediente);
-
-        // Validar que no está firmado
-        if (!$correspondencia->esEditable()) {
-            return response()->json([
-                'error' => 'No se puede eliminar una correspondencia firmada.',
-            ], 422);
+        if (!Auth::user()->hasRole(['root', 'administrador', 'editor'])) {
+            return response()->json(['error' => 'No tiene permisos'], 403);
         }
 
-        // Soft delete
-        $correspondencia->delete();
+        if ($correspondencia->estado !== Correspondencia::ESTADO_BORRADOR) {
+            return response()->json(['error' => 'Solo se pueden emitir borradores.'], 422);
+        }
 
-        // Registrar auditoría
-        $this->registrarAcceso($correspondencia, 'eliminar', 'Documento eliminado');
+        $this->asignarNumeroYEmitir($correspondencia, Auth::user());
+        $this->registrarAcceso($correspondencia, 'emitir', 'Oficio emitido');
 
-        return response()->json(['mensaje' => 'Correspondencia eliminada.']);
+        return response()->json([
+            'mensaje' => 'Oficio emitido.',
+            'numero_oficio' => $correspondencia->numero_oficio,
+            'estado' => $correspondencia->estado,
+        ]);
     }
 
     /**
-     * Firmar correspondencia con SAT
-     * POST /correspondencia/{id}/firmar
+     * Remitir a usuario interno.
+     * POST /api/correspondencia/{id}/remitir
+     */
+    public function remitir(Request $request, $id)
+    {
+        $correspondencia = Correspondencia::findOrFail($id);
+        $this->verificarAccesoOficio($correspondencia);
+
+        if (!Auth::user()->hasRole(['root', 'administrador', 'editor'])) {
+            return response()->json(['error' => 'No tiene permisos'], 403);
+        }
+
+        if ($correspondencia->estado === Correspondencia::ESTADO_BORRADOR) {
+            $this->asignarNumeroYEmitir($correspondencia, Auth::user());
+        }
+
+        if (!in_array($correspondencia->estado, [
+            Correspondencia::ESTADO_EMITIDO,
+            Correspondencia::ESTADO_FIRMADO,
+        ], true)) {
+            return response()->json(['error' => 'El oficio no puede remitirse en su estado actual.'], 422);
+        }
+
+        $validado = $request->validate([
+            'id_usuario_destinatario' => 'required|exists:users,id',
+        ]);
+
+        $destinatario = User::findOrFail($validado['id_usuario_destinatario']);
+        $emisor = Auth::user();
+        if (!$emisor->hasRole('root')
+            && $destinatario->id_dependencia
+            && $emisor->id_dependencia
+            && (int) $destinatario->id_dependencia !== (int) $emisor->id_dependencia) {
+            return response()->json(['error' => 'El destinatario debe ser de su misma dependencia.'], 422);
+        }
+
+        $correspondencia->id_usuario_destinatario = $destinatario->id;
+        $correspondencia->estado = Correspondencia::ESTADO_REMITIDO;
+        $correspondencia->remitido_at = now();
+        $correspondencia->save();
+
+        $this->registrarAcceso($correspondencia, 'remitir', 'Remitido a usuario ' . $destinatario->id);
+
+        return response()->json([
+            'mensaje' => 'Oficio remitido.',
+            'estado' => $correspondencia->estado,
+        ]);
+    }
+
+    /**
+     * Archivar: asocia expediente y crea unidad documental PDF.
+     * POST /api/correspondencia/{id}/archivar
+     */
+    public function archivar(Request $request, $id)
+    {
+        $correspondencia = Correspondencia::findOrFail($id);
+        $this->verificarAccesoOficio($correspondencia);
+
+        $usuario = Auth::user();
+        $esDestinatario = (int) $correspondencia->id_usuario_destinatario === (int) $usuario->id;
+        if (!$esDestinatario && !$usuario->hasRole(['root', 'administrador'])) {
+            return response()->json(['error' => 'Solo el destinatario puede archivar este oficio.'], 403);
+        }
+
+        if ($correspondencia->estado !== Correspondencia::ESTADO_REMITIDO
+            && !($usuario->hasRole('root') && $correspondencia->estado === Correspondencia::ESTADO_FIRMADO
+                && $correspondencia->id_usuario_destinatario)) {
+            if ($correspondencia->estado !== Correspondencia::ESTADO_REMITIDO) {
+                return response()->json(['error' => 'El oficio debe estar remitido para archivarse.'], 422);
+            }
+        }
+
+        $validado = $request->validate([
+            'id_expediente' => 'required|exists:expedientes,id',
+            'tipo' => 'nullable|string|max:255',
+            'nombre' => 'nullable|string|max:255',
+            'descripcion' => 'nullable|string',
+        ]);
+
+        $expediente = Expediente::findOrFail($validado['id_expediente']);
+        $this->verificarAccesoExpediente($expediente);
+
+        if ($expediente->estado !== 'en_tramite') {
+            return response()->json([
+                'error' => 'Solo se pueden añadir unidades documentales a expedientes en trámite.',
+            ], 422);
+        }
+
+        try {
+            $pdf = \PDF::loadView('pdf.oficio', [
+                'correspondencia' => $correspondencia->load(['usuarioAutor', 'firma']),
+            ]);
+            $nombreArchivo = 'oficios/' . Str::slug($correspondencia->numero_oficio ?: ('oficio-' . $correspondencia->id))
+                . '-' . $correspondencia->id . '.pdf';
+            Storage::disk('public')->put($nombreArchivo, $pdf->output());
+
+            $unidad = UnidadDocumental::create([
+                'id_expediente' => $expediente->id,
+                'tipo' => $validado['tipo'] ?? 'Oficio',
+                'nombre' => $validado['nombre']
+                    ?? ($correspondencia->numero_oficio ?: ('Oficio ' . $correspondencia->id)),
+                'descripcion' => $validado['descripcion'] ?? $correspondencia->asunto,
+                'archivo' => $nombreArchivo,
+            ]);
+
+            $correspondencia->id_expediente = $expediente->id;
+            $correspondencia->id_unidad_documental = $unidad->id;
+            $correspondencia->estado = Correspondencia::ESTADO_ARCHIVADO;
+            $correspondencia->archivado_at = now();
+            $correspondencia->save();
+
+            $this->registrarAcceso($correspondencia, 'archivar', 'Archivado en expediente ' . $expediente->id);
+
+            return response()->json([
+                'mensaje' => 'Oficio archivado como unidad documental.',
+                'id_unidad_documental' => $unidad->id,
+                'id_expediente' => $expediente->id,
+                'estado' => $correspondencia->estado,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error al archivar oficio: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'No se pudo archivar el oficio.'], 500);
+        }
+    }
+
+    public function destroy($id)
+    {
+        $correspondencia = Correspondencia::findOrFail($id);
+        $this->verificarAccesoOficio($correspondencia);
+
+        if (!$correspondencia->esEditable()) {
+            return response()->json(['error' => 'Solo se pueden eliminar borradores.'], 422);
+        }
+
+        $correspondencia->delete();
+        $this->registrarAcceso($correspondencia, 'eliminar', 'Oficio eliminado');
+
+        return response()->json(['mensaje' => 'Oficio eliminado.']);
+    }
+
+    /**
+     * Firma SAT sandbox (opcional).
      */
     public function firmar($id)
     {
         $correspondencia = Correspondencia::findOrFail($id);
+        $this->verificarAccesoOficio($correspondencia);
 
-        // Validar permisos
-        $this->verificarAccesoExpediente($correspondencia->expediente);
-
-        // Validar que el usuario puede firmar
         if (!Auth::user()->hasRole(['root', 'administrador', 'editor'])) {
             return response()->json(['error' => 'No tiene permisos para firmar'], 403);
         }
 
-        // Invocar servicio de firma SAT
+        if (in_array($correspondencia->estado, [
+            Correspondencia::ESTADO_ARCHIVADO,
+            Correspondencia::ESTADO_CANCELADO,
+        ], true)) {
+            return response()->json(['error' => 'No se puede firmar un oficio archivado o cancelado.'], 422);
+        }
+
+        if ($correspondencia->estado === Correspondencia::ESTADO_BORRADOR) {
+            $this->asignarNumeroYEmitir($correspondencia, Auth::user());
+            $correspondencia->refresh();
+        }
+
         $resultado = $this->satService->firmar($correspondencia);
 
         if (!$resultado['exito']) {
@@ -259,63 +415,151 @@ class CorrespondenciaController extends Controller
         }
 
         return response()->json([
-            'mensaje' => $resultado['mensaje'],
+            'mensaje' => $resultado['mensaje'] . ' (modo prueba / sandbox)',
             'id_firma' => $resultado['id_firma'],
             'timestamp' => $resultado['timestamp'],
+            'estado' => $correspondencia->fresh()->estado,
         ]);
     }
 
-    /**
-     * Descargar correspondencia como PDF
-     * GET /correspondencia/{id}/pdf
-     */
     public function descargarPDF($id)
     {
         $correspondencia = Correspondencia::with(['expediente', 'usuarioAutor', 'firma'])
             ->findOrFail($id);
 
-        // Validar permisos
-        $this->verificarAccesoExpediente($correspondencia->expediente);
-
-        // Registrar acceso (auditoría)
+        $this->verificarAccesoOficio($correspondencia);
         $this->registrarAcceso($correspondencia, 'descargar');
 
-        // Generar PDF usando view Blade
-        $pdf = \PDF::loadView('pdf.correspondencia', [
+        $pdf = \PDF::loadView('pdf.oficio', [
             'correspondencia' => $correspondencia,
         ]);
 
-        return $pdf->download('correspondencia-' . $correspondencia->id . '.pdf');
+        $nombre = 'oficio-' . ($correspondencia->numero_oficio
+            ? Str::slug($correspondencia->numero_oficio)
+            : $correspondencia->id) . '.pdf';
+
+        return $pdf->download($nombre);
     }
 
-    /**
-     * Verificar que el usuario tiene acceso a un expediente
-     */
-    protected function verificarAccesoExpediente(Expediente $expediente): void
+    protected function asignarNumeroYEmitir(Correspondencia $correspondencia, User $emisor): void
+    {
+        if (!$correspondencia->numero_oficio) {
+            $correspondencia->numero_oficio = $this->oficioNumeroService->generar($emisor);
+        }
+        if (!$correspondencia->fecha_oficio) {
+            $correspondencia->fecha_oficio = now()->toDateString();
+        }
+        $correspondencia->estado = Correspondencia::ESTADO_EMITIDO;
+        $correspondencia->save();
+    }
+
+    protected function verificarAccesoOficio(Correspondencia $correspondencia): void
     {
         $usuario = Auth::user();
-
-        // root o usuario sin autenticación estricta tiene acceso global
         if (!$usuario || $usuario->hasRole('root')) {
             return;
         }
 
-        // Verificar coincidencia de dependencia si ambas están definidas
-        if ($expediente->id_dependencia && $usuario->id_dependencia && $expediente->id_dependencia != $usuario->id_dependencia) {
+        if ((int) $correspondencia->id_usuario_autor === (int) $usuario->id
+            || (int) $correspondencia->id_usuario_destinatario === (int) $usuario->id) {
+            return;
+        }
+
+        $autor = $correspondencia->usuarioAutor;
+        if ($autor && $autor->id_dependencia && $usuario->id_dependencia
+            && (int) $autor->id_dependencia === (int) $usuario->id_dependencia
+            && $usuario->hasRole(['administrador', 'editor', 'lector'])) {
+            return;
+        }
+
+        abort(403, 'No tiene acceso a este oficio.');
+    }
+
+    protected function verificarAccesoExpediente(Expediente $expediente): void
+    {
+        $usuario = Auth::user();
+        if (!$usuario || $usuario->hasRole('root')) {
+            return;
+        }
+        if ($expediente->id_dependencia && $usuario->id_dependencia
+            && (int) $expediente->id_dependencia !== (int) $usuario->id_dependencia) {
             abort(403, 'No tiene acceso a este expediente.');
         }
     }
 
-    /**
-     * Registrar acceso en auditoría
-     */
-    protected function registrarAcceso(Correspondencia $correspondencia, string $accion = 'acceder', string $detalles = ''): void
+    protected function registrarAcceso(
+        Correspondencia $correspondencia,
+        string $accion = 'acceder',
+        string $detalles = ''
+    ): void {
+        try {
+            $correspondencia->auditorias()->create([
+                'id_usuario' => Auth::id(),
+                'accion' => $accion,
+                'detalles' => $detalles ?: 'Acceso al documento',
+                'ip_address' => request()->ip(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo registrar auditoría de correspondencia: ' . $e->getMessage());
+        }
+    }
+
+    protected function mapListado(Correspondencia $corr): array
     {
-        $correspondencia->auditorias()->create([
-            'id_usuario' => Auth::id(),
-            'accion' => $accion,
-            'detalles' => $detalles ?: 'Acceso al documento',
-            'ip_address' => request()->ip(),
-        ]);
+        return [
+            'id' => $corr->id,
+            'numero_oficio' => $corr->numero_oficio,
+            'asunto' => $corr->asunto,
+            'destinatario' => $corr->destinatario,
+            'estado' => $corr->estado,
+            'clasificacion' => $corr->clasificacion,
+            'fecha_oficio' => $corr->fecha_oficio?->format('Y-m-d'),
+            'fecha_creacion' => $corr->fecha_creacion?->format('Y-m-d H:i:s'),
+            'remitido_at' => $corr->remitido_at?->format('Y-m-d H:i:s'),
+            'usuario_autor' => $corr->usuarioAutor
+                ? trim($corr->usuarioAutor->nombre . ' ' . $corr->usuarioAutor->apellido_paterno)
+                : 'Desconocido',
+            'usuario_destinatario' => $corr->usuarioDestinatario
+                ? trim($corr->usuarioDestinatario->nombre . ' ' . $corr->usuarioDestinatario->apellido_paterno)
+                : null,
+            'id_expediente' => $corr->id_expediente,
+            'tiene_firma_valida' => $corr->tieneFirmaValida(),
+        ];
+    }
+
+    protected function mapDetalle(Correspondencia $c): array
+    {
+        return [
+            'id' => $c->id,
+            'id_expediente' => $c->id_expediente,
+            'id_unidad_documental' => $c->id_unidad_documental,
+            'numero_consecutivo' => $c->numero_consecutivo,
+            'numero_oficio' => $c->numero_oficio,
+            'asunto' => $c->asunto,
+            'leyenda_anio' => $c->leyenda_anio,
+            'fecha_oficio' => $c->fecha_oficio?->format('Y-m-d'),
+            'remitente' => $c->remitente,
+            'destinatario' => $c->destinatario,
+            'contenido' => $c->contenido,
+            'clasificacion' => $c->clasificacion,
+            'estado' => $c->estado,
+            'id_usuario_destinatario' => $c->id_usuario_destinatario,
+            'usuario_autor' => $c->usuarioAutor ? [
+                'id' => $c->usuarioAutor->id,
+                'nombre' => trim($c->usuarioAutor->nombre . ' ' . $c->usuarioAutor->apellido_paterno),
+            ] : null,
+            'usuario_destinatario' => $c->usuarioDestinatario ? [
+                'id' => $c->usuarioDestinatario->id,
+                'nombre' => trim($c->usuarioDestinatario->nombre . ' ' . $c->usuarioDestinatario->apellido_paterno),
+            ] : null,
+            'firma' => $c->firma ? [
+                'id' => $c->firma->id,
+                'timestamp_firma' => $c->firma->timestamp_firma?->toIso8601String(),
+                'estado_firma' => $c->firma->estado_firma,
+            ] : null,
+            'lugar' => config('services.oficio.lugar'),
+            'firma_nombre' => config('services.oficio.firma_nombre'),
+            'firma_cargo' => config('services.oficio.firma_cargo'),
+        ];
     }
 }

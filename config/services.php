@@ -37,4 +37,11 @@ return [
         'cert_path' => env('SAT_SIGNING_CERT_PATH', ''),
     ],
 
+    'oficio' => [
+        'leyenda_anio_default' => env('OFICIO_LEYENDA_ANIO', ''),
+        'lugar' => env('OFICIO_LUGAR', 'Chetumal, Quintana Roo'),
+        'firma_nombre' => env('OFICIO_FIRMA_NOMBRE', 'Licdo. Gabriel Caamal Pérez'),
+        'firma_cargo' => env('OFICIO_FIRMA_CARGO', 'Director General del Archivo General del Estado de Quintana Roo'),
+    ],
+
 ];

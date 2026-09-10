@@ -89,14 +89,14 @@ app.component('admin-catalogo-vue', AdminCatalogo);
 import Indexfondos from './admin/Indexfondos.vue';
 app.component('indexfondos-vue', Indexfondos);
 
-import Correspondencia from './admin/Correspondencia.vue';
-app.component('correspondencia-vue', Correspondencia);
+import CorrespondenciaBandeja from './admin/CorrespondenciaBandeja.vue';
+app.component('correspondencia-bandeja-vue', CorrespondenciaBandeja);
 
-import CorrespondenciaEditor from './admin/CorrespondenciaEditor.vue';
-app.component('correspondencia-editor-vue', CorrespondenciaEditor);
+import CorrespondenciaRecepcion from './admin/CorrespondenciaRecepcion.vue';
+app.component('correspondencia-recepcion-vue', CorrespondenciaRecepcion);
 
-import CorrespondenciaExplorer from './admin/CorrespondenciaExplorer.vue';
-app.component('correspondencia-explorer-vue', CorrespondenciaExplorer);
+import OficioEditor from './admin/OficioEditor.vue';
+app.component('oficio-editor-vue', OficioEditor);
 
 
 
