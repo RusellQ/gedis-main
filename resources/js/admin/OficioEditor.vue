@@ -291,6 +291,8 @@ export default {
         target: this.$refs.editorTextarea,
         height: 360,
         menubar: true,
+        branding: false,
+        promotion: false,
         skin: false,
         content_css: false,
         plugins: [
