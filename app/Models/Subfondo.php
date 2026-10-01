@@ -16,8 +16,9 @@ class Subfondo extends Model
         'codigo',
         'descripcion',
         'id_fondo',
-        'id_dependencia', 
-        'id_departamento', 
+        'id_dependencia',
+        'id_departamento',
+        'id_instrumento_control',
     ];
 
     public function fondo()

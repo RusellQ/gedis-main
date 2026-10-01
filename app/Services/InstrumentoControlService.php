@@ -51,6 +51,7 @@ class InstrumentoControlService
         ]);
 
         $fondo->update(['id_instrumento_control' => $instrumento->id]);
+        self::copiarInstrumentoASubfondos($fondo, $instrumento->id);
 
         return $instrumento;
     }
@@ -142,6 +143,8 @@ class InstrumentoControlService
             'descripcion' => $fondo->descripcion,
         ]);
 
+        self::copiarInstrumentoASubfondos($fondo, $instrumento->id);
+
         return $instrumento;
     }
 
@@ -226,6 +229,7 @@ class InstrumentoControlService
 
     public static function eliminarParaFondo(Fondo $fondo): void
     {
+        self::copiarInstrumentoASubfondos($fondo, null);
         self::eliminarNivel('fondo', 'id_fondo', $fondo->id, $fondo->id_instrumento_control);
         $fondo->update(['id_instrumento_control' => null]);
     }
@@ -245,6 +249,11 @@ class InstrumentoControlService
     {
         self::eliminarNivel('subserie', 'id_subserie', $subserie->id, $subserie->id_instrumento_control);
         $subserie->update(['id_instrumento_control' => null]);
+    }
+
+    private static function copiarInstrumentoASubfondos(Fondo $fondo, ?int $instrumentoId): void
+    {
+        $fondo->subfondos()->update(['id_instrumento_control' => $instrumentoId]);
     }
 
     private static function encontrarPorNivel(string $tipoNivel, string $fk, int $id): ?InstrumentoControl

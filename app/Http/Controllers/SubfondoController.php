@@ -37,6 +37,7 @@ class SubfondoController extends Controller
         $jerarquia = $this->resolveJerarquiaIds($request, $fondo);
         $data['id_dependencia'] = $jerarquia['id_dependencia'];
         $data['id_departamento'] = $jerarquia['id_departamento'];
+        $data['id_instrumento_control'] = $fondo->id_instrumento_control;
 
         $subfondo = Subfondo::create($data);
 
@@ -64,6 +65,8 @@ class SubfondoController extends Controller
             ],
             'descripcion' => 'nullable|string',
         ]);
+
+        $data['id_instrumento_control'] = $subfondo->fondo?->id_instrumento_control;
 
         $subfondo->update($data);
 
