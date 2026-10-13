@@ -15,6 +15,7 @@ class User extends Authenticatable
         'apellido_paterno',
         'email',
         'password',
+        'debe_cambiar_password',
         'id_dependencia',
         'id_departamento',
         'roles',
@@ -22,6 +23,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'roles' => 'array', // Importante para convertir JSON a array
+        'debe_cambiar_password' => 'boolean',
     ];
 
     public function hasRole($roles)

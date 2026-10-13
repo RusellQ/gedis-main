@@ -32,8 +32,9 @@
         </div>
         <div class="row mb-3">
           <div class="col-sm-6">
-            <label for="password" class="form-label">Contraseña:</label>
-            <input v-model="password" type="password" id="password" name="password" class="form-control" required>
+            <label for="password" class="form-label">Contraseña temporal:</label>
+            <input v-model="password" type="password" id="password" name="password" class="form-control" required minlength="8">
+            <small class="text-muted">La persona deberá cambiarla en su primer inicio de sesión.</small>
           </div>
           <div class="col-sm-6">
             <label for="confirm_password" class="form-label">Confirmar Contraseña:</label>

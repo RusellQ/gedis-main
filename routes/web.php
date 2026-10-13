@@ -260,6 +260,10 @@ Route::post('/buscar', [DocumentoController::class, 'buscar']);
 Route::post('/users', [UsersController::class, 'store'])->name('users.store');
 Route::post('/login', [UsersController::class, 'login'])->name('users.login');
 Route::post('/logout', [UsersController::class, 'logout'])->name('users.logout');
+Route::middleware('auth')->group(function () {
+    Route::get('/cambiar-contrasena', [UsersController::class, 'mostrarCambioContrasena'])->name('password.cambiar');
+    Route::post('/cambiar-contrasena', [UsersController::class, 'guardarCambioContrasena'])->name('password.cambiar.store');
+});
 
 Route::get('/list-users', [UsersController::class, 'listUsers'])->name('users.list');
 Route::delete('/users/{id}', [UsersController::class, 'destroy'])->name('users.destroy');

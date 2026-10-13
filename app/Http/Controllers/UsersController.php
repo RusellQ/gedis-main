@@ -35,12 +35,13 @@ class UsersController extends Controller
             'apellido_paterno' => $request->apellido_paterno,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'debe_cambiar_password' => true,
             'roles' => $request->roles,
             'id_dependencia' => $request->id_dependencia,
             'id_departamento' => $request->id_departamento,
         ]);
 
-        return response()->json(['message' => '¡Usuario creado exitosamente!']);
+        return response()->json(['message' => '¡Usuario creado exitosamente! La contraseña es temporal y deberá cambiarla en su primer inicio de sesión.']);
     }
 
 
@@ -56,12 +57,56 @@ class UsersController extends Controller
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
 
+            if (Auth::user()->debe_cambiar_password) {
+                return redirect()->route('password.cambiar');
+            }
+
             return redirect()->intended('/dashboard');
         }
 
         return back()->withErrors([
             'email' => 'Las credenciales proporcionadas no coinciden con nuestros registros.',
         ])->onlyInput('email');
+    }
+
+    public function mostrarCambioContrasena()
+    {
+        if (! Auth::user()->debe_cambiar_password) {
+            return redirect('/dashboard');
+        }
+
+        return view('auth.cambiar-contrasena');
+    }
+
+    public function guardarCambioContrasena(Request $request)
+    {
+        $user = Auth::user();
+
+        if (! $user->debe_cambiar_password) {
+            return redirect('/dashboard');
+        }
+
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'password.required' => 'Escribe la contraseña nueva.',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'password.confirmed' => 'La confirmación no coincide con la contraseña.',
+        ]);
+
+        if (Hash::check($request->password, $user->password)) {
+            return back()->withErrors([
+                'password' => 'La contraseña nueva debe ser distinta de la temporal.',
+            ]);
+        }
+
+        $user->password = Hash::make($request->password);
+        $user->debe_cambiar_password = false;
+        $user->save();
+
+        $request->session()->regenerate();
+
+        return redirect('/dashboard');
     }
 
     public function logout(Request $request)
@@ -112,8 +157,12 @@ class UsersController extends Controller
             'apellido_materno' => 'required|string|max:255',
             'apellido_paterno' => 'required|string|max:255',
             'area_asignada' => 'nullable|string|max:255', // validación para el área administrativa
-            'roles' => 'array'
+            'roles' => 'array',
         ];
+
+        if ($request->filled('password')) {
+            $rules['password'] = 'string|min:8';
+        }
 
         // Aplicar la validación del correo electrónico solo si se proporciona un nuevo correo electrónico
         if ($request->email !== $user->email) {
@@ -122,15 +171,19 @@ class UsersController extends Controller
             $rules['email'] = 'required|string|email|max:255';
         }
 
-        // Validar la solicitud
-        $validatedData = $request->validate($rules);
+        $validatedData = $request->validate($rules, [
+            'password.min' => 'La contraseña temporal debe tener al menos 8 caracteres.',
+        ]);
 
-        // Actualizar los campos del usuario
+        unset($validatedData['password']);
+
         $user->update($validatedData);
 
-        // Si la contraseña está presente y no está vacía, actualizarla
         if ($request->filled('password')) {
-            $user->update(['password' => Hash::make($request->password)]);
+            $user->update([
+                'password' => Hash::make($request->password),
+                'debe_cambiar_password' => true,
+            ]);
         }
 
         return response()->json(['message' => 'Usuario actualizado exitosamente']);

@@ -28,6 +28,7 @@
 20. **[002 · Visor de unidades documentales (PDF)](../features/002-visor-unidades-documentales/)** — preview Fancybox con navegación entre PDFs; alta de unidades solo en Trámite.
 21. **[003 · Estadísticas en inicio (gráficas + PDF)](../features/003-dashboard-estadisticas-pastel/)** — dashboard con gráfica; multi-selección Fondo → (Subfondo) → Sección → Serie → (Subserie) (opcionales respetados); uno–tres tipos de expediente; agrupación por nivel elegido; PDF con encabezado oficial + gráfica.
 22. **[004 · Módulo de Correspondencia](../features/004-modulo-correspondencia/)** — Recepción y control de documentos con editor WYSIWYG, firma electrónica SAT (con modo sandbox) y adjunción de PDFs.
+23. **[006 · Contraseña temporal en el primer inicio](../features/006-contrasena-temporal-primer-inicio/)** — La contraseña del alta, y la que el administrador asigne después desde el listado, es temporal: en el siguiente inicio hay que cambiarla antes de usar el sistema.
 
 ## Siguiente 🔜
 

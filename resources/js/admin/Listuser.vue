@@ -59,9 +59,10 @@
               </div>
 
               <div class="form-group">
-                <label for="password">Contraseña:</label>
+                <label for="password">Contraseña temporal:</label>
                 <input v-model="editedUser.password" type="password" id="password" class="form-control"
-                  placeholder="••••••••">
+                  placeholder="Dejar en blanco para no cambiarla" minlength="8">
+                <small class="text-muted">Si escribes una, deberá cambiarla en su siguiente inicio de sesión.</small>
               </div>
               <div class="form-group">
                 <label>Roles:</label>
@@ -181,17 +182,22 @@ export default {
             $('.modal-backdrop').remove();
             $('body').removeClass('modal-open');
           });
+          const texto = this.editedUser.password
+            ? 'El usuario ha sido actualizado. La contraseña es temporal y deberá cambiarla en su siguiente inicio de sesión.'
+            : 'El usuario ha sido actualizado exitosamente.';
           Swal.fire(
             'Actualizado',
-            'El usuario ha sido actualizado exitosamente.',
+            texto,
             'success'
           );
         })
         .catch(error => {
           console.error('Error al actualizar el usuario:', error);
+          const mensaje = error.response?.data?.errors?.password?.[0]
+            || 'Hubo un problema al actualizar el usuario.';
           Swal.fire(
             'Error',
-            'Hubo un problema al actualizar el usuario.',
+            mensaje,
             'error'
           );
         });
