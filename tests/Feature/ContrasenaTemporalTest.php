@@ -180,6 +180,8 @@ class ContrasenaTemporalTest extends TestCase
             'apellido_materno' => 'Gedis',
             'email' => $user->email,
             'roles' => ['lector'],
+            'id_dependencia' => $user->id_dependencia,
+            'id_departamento' => $user->id_departamento,
         ];
 
         if ($password !== null) {

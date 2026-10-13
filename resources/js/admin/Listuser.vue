@@ -9,8 +9,8 @@
           <li v-for="role in user.roles" :key="role" class="role">{{ role }}</li>
         </ul>
         <div class="button-group">
-          <button @click="openEditModal(user)" class="btn-edit" data-toggle="modal" data-target="#editModal">
-            <i class="fas fa-edit"></i> <!-- Icono de editar -->
+          <button type="button" @click="openEditModal(user)" class="btn-edit">
+            <i class="fas fa-edit"></i>
           </button>
           <button @click="confirmDelete(user)" class="btn-delete">
             <i class="fas fa-minus-circle"></i> <!-- Icono de eliminar -->
@@ -20,12 +20,12 @@
     </div>
 
     <!-- Modal para editar usuario -->
-    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div ref="editModal" class="modal fade" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="editModalLabel">Editar Usuario</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <button type="button" class="close" @click="cerrarModal" aria-label="Cerrar">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
@@ -50,10 +50,22 @@
                 <input v-model="editedUser.email" type="email" id="email" class="form-control" required>
               </div>
               <div class="form-group">
-                <label for="area_asignada">Área Asignada:</label>
-                <select v-model="editedUser.area_asignada" id="area_asignada" class="form-control" required>
-                  <option v-for="area in availableAreas" :key="area" :value="area">
-                    {{ area }}
+                <label for="id_dependencia">Dependencia:</label>
+                <select v-model="editedUser.id_dependencia" id="id_dependencia" class="form-control"
+                  :disabled="!esRoot" required @change="onDependenciaChange">
+                  <option disabled value="">Selecciona una dependencia</option>
+                  <option v-for="dep in dependencias" :key="dep.id" :value="dep.id">
+                    {{ dep.nombre }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="id_departamento">Departamento:</label>
+                <select v-model="editedUser.id_departamento" id="id_departamento" class="form-control"
+                  :disabled="!editedUser.id_dependencia" required>
+                  <option disabled value="">Selecciona un departamento</option>
+                  <option v-for="dep in departamentos" :key="dep.id" :value="dep.id">
+                    {{ dep.nombre }}
                   </option>
                 </select>
               </div>
@@ -86,36 +98,44 @@
 <script>
 import Swal from 'sweetalert2';
 import axios from 'axios';
+import { Modal } from 'bootstrap';
 
 export default {
   data() {
     return {
-      users: [], // Aquí almacenarás los datos de los usuarios
+      users: [],
       editedUser: {
-        _id: '',
+        id: '',
         nombre: '',
         apellido_paterno: '',
         apellido_materno: '',
         email: '',
         password: '',
-        roles: []
+        roles: [],
+        id_dependencia: '',
+        id_departamento: '',
       },
       availableRoles: ['administrador', 'editor', 'lector'],
-      originalUser: null,// Para almacenar la copia original del usuario
-      availableAreas: [
-        'Dirección General',
-        'Dirección Archivo del Ejecutivo',
-        'Departamento Administrativo',
-        'Departamento de Normatividad Jurídica y Unidad de Transparencia',
-        'Departamento de Archivo Histórico',
-        'Departamento de Biblioteca y Hemeroteca',
-        'Departamento de Conservación, Restauración y Encuadernación',
-        'Departamento de Tecnologías de la Información y Comunicaciones'
-      ]
+      dependencias: [],
+      departamentos: [],
+      usuarioActual: null,
     };
+  },
+  computed: {
+    esRoot() {
+      return Array.isArray(this.usuarioActual?.roles) && this.usuarioActual.roles.includes('root');
+    },
   },
   mounted() {
     this.fetchUsers();
+    this.cargarUsuarioActual();
+    this.cargarDependencias();
+  },
+  beforeUnmount() {
+    const el = this.$refs.editModal;
+    if (el) {
+      Modal.getInstance(el)?.dispose();
+    }
   },
   methods: {
     fetchUsers() {
@@ -127,17 +147,81 @@ export default {
           console.error('Error al obtener la lista de usuarios:', error);
         });
     },
-    openEditModal(user) {
-      // Guardar una copia del usuario original
-      this.originalUser = { ...user };
+    async cargarUsuarioActual() {
+      try {
+        const response = await axios.get('/currentuser');
+        const roles = typeof response.data.roles === 'string'
+          ? JSON.parse(response.data.roles)
+          : response.data.roles || [];
+        this.usuarioActual = {
+          id_dependencia: response.data.id_dependencia || null,
+          roles,
+        };
+      } catch (error) {
+        console.error('Error cargando usuario:', error);
+      }
+    },
+    async cargarDependencias() {
+      try {
+        const response = await axios.get('/indexdependencias');
+        this.dependencias = response.data;
+      } catch (error) {
+        console.error('Error al cargar dependencias:', error);
+      }
+    },
+    async cargarDepartamentos(dependenciaId) {
+      if (!dependenciaId) {
+        this.departamentos = [];
+        return;
+      }
+      try {
+        const response = await axios.get(`/indexdepartamentos?dependencia_id=${dependenciaId}`);
+        this.departamentos = response.data;
+      } catch (error) {
+        console.error('Error al cargar departamentos:', error);
+        this.departamentos = [];
+      }
+    },
+    onDependenciaChange() {
+      this.editedUser.id_departamento = '';
+      this.cargarDepartamentos(this.editedUser.id_dependencia);
+    },
+    obtenerModal() {
+      return Modal.getOrCreateInstance(this.$refs.editModal);
+    },
+    cerrarModal() {
+      this.obtenerModal().hide();
+    },
+    async openEditModal(user) {
+      if (!this.usuarioActual) {
+        await this.cargarUsuarioActual();
+      }
+      if (!this.dependencias.length) {
+        await this.cargarDependencias();
+      }
 
-      // Limpiar el campo de contraseña
-      const { password, ...editedUser } = user;
-      this.editedUser = editedUser;
+      const { password, ...resto } = user;
+      this.editedUser = {
+        ...resto,
+        password: '',
+        roles: Array.isArray(resto.roles) ? [...resto.roles] : [],
+        id_dependencia: resto.id_dependencia != null ? Number(resto.id_dependencia) : '',
+        id_departamento: resto.id_departamento != null ? Number(resto.id_departamento) : '',
+      };
 
-      $('#editModal').modal('show'); // Mostrar el modal manualmente
+      await this.cargarDepartamentos(this.editedUser.id_dependencia);
+      this.obtenerModal().show();
     },
     confirmUpdate() {
+      if (!this.editedUser.id_dependencia || !this.editedUser.id_departamento) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Faltan datos',
+          text: 'Selecciona la dependencia y el departamento.',
+        });
+        return;
+      }
+
       Swal.fire({
         title: '¿Estás seguro?',
         text: '¿Deseas guardar los cambios?',
@@ -165,7 +249,8 @@ export default {
         apellido_paterno: this.editedUser.apellido_paterno,
         apellido_materno: this.editedUser.apellido_materno,
         email: this.editedUser.email,
-        area_asignada: this.editedUser.area_asignada,
+        id_dependencia: this.editedUser.id_dependencia,
+        id_departamento: this.editedUser.id_departamento,
         roles: this.editedUser.roles,
       };
 
@@ -173,15 +258,10 @@ export default {
         updatedUser.password = this.editedUser.password;
       }
 
-      // Imprimir el objeto actualizado para verificar los valores
-
       axios.put(`/users/${updatedUser.id}`, updatedUser)
-        .then(response => {
+        .then(() => {
+          this.cerrarModal();
           this.fetchUsers();
-          $('#editModal').on('hidden.bs.modal', function () {
-            $('.modal-backdrop').remove();
-            $('body').removeClass('modal-open');
-          });
           const texto = this.editedUser.password
             ? 'El usuario ha sido actualizado. La contraseña es temporal y deberá cambiarla en su siguiente inicio de sesión.'
             : 'El usuario ha sido actualizado exitosamente.';
@@ -193,7 +273,10 @@ export default {
         })
         .catch(error => {
           console.error('Error al actualizar el usuario:', error);
-          const mensaje = error.response?.data?.errors?.password?.[0]
+          const errores = error.response?.data?.errors || {};
+          const mensaje = errores.password?.[0]
+            || errores.id_departamento?.[0]
+            || errores.id_dependencia?.[0]
             || 'Hubo un problema al actualizar el usuario.';
           Swal.fire(
             'Error',

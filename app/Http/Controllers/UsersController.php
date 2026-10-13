@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class UsersController extends Controller
 {
@@ -156,7 +157,14 @@ class UsersController extends Controller
             'nombre' => 'required|string|max:255',
             'apellido_materno' => 'required|string|max:255',
             'apellido_paterno' => 'required|string|max:255',
-            'area_asignada' => 'nullable|string|max:255', // validación para el área administrativa
+            'id_dependencia' => 'required|integer|exists:dependencias,id',
+            'id_departamento' => [
+                'required',
+                'integer',
+                Rule::exists('departamentos', 'id')->where(function ($query) use ($request) {
+                    $query->where('id_dependencia', $request->input('id_dependencia'));
+                }),
+            ],
             'roles' => 'array',
         ];
 
@@ -173,6 +181,10 @@ class UsersController extends Controller
 
         $validatedData = $request->validate($rules, [
             'password.min' => 'La contraseña temporal debe tener al menos 8 caracteres.',
+            'id_dependencia.required' => 'Selecciona una dependencia.',
+            'id_dependencia.exists' => 'La dependencia seleccionada no existe.',
+            'id_departamento.required' => 'Selecciona un departamento.',
+            'id_departamento.exists' => 'El departamento no pertenece a la dependencia seleccionada.',
         ]);
 
         unset($validatedData['password']);
